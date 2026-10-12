@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <!-- Metallic steel reflection gradient -->
+    <linearGradient id="spoon-steel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="35%" stop-color="#D9DCE1" />
+      <stop offset="70%" stop-color="#B8BCC2" />
+      <stop offset="100%" stop-color="#7B8189" />
+    </linearGradient>
+    <linearGradient id="spoon-bowl-inner" x1="20%" y1="10%" x2="80%" y2="90%">
+      <stop offset="0%" stop-color="#F1F3F5" />
+      <stop offset="60%" stop-color="#A5ACB5" />
+      <stop offset="100%" stop-color="#6E747C" />
+    </linearGradient>
+  </defs>
+
+  <!-- Spoon Handle with offset drop reflection -->
+  <path
+    d="M 10 13 L 26 27 C 27.5 28.5, 29 27, 28 25.5 L 13 10 Z"
+    fill="url(#spoon-steel)"
+    stroke="#14110F"
+    stroke-width="1.5"
+    stroke-linejoin="round"
+  />
+
+  <!-- Spoon Bowl (tip accurately positioned at 2, 2) -->
+  <path
+    d="M 2 2 C 7 1, 14 5, 13 11 C 12 15, 8 16, 5 13 C 2 10, 1 5, 2 2 Z"
+    fill="url(#spoon-bowl-inner)"
+    stroke="#14110F"
+    stroke-width="1.5"
+    stroke-linejoin="round"
+  />
+
+  <!-- Bowl highlight reflection streak -->
+  <path
+    d="M 3.5 3.5 C 7 3, 11 6, 10.5 9.5"
+    stroke="#FFFFFF"
+    stroke-width="1.2"
+    stroke-linecap="round"
+  />
+</svg>

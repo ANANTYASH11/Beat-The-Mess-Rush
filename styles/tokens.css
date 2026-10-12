@@ -1,0 +1,56 @@
+/**
+ * Design Tokens — "Beat the Mess Rush" Signature Theme
+ * Cream paper, ink borders, hard offset shadows, vibrant canteen food colors.
+ */
+
+:root {
+  /* ── Core Palette ── */
+  --color-bg:        #F4ECD8; /* Cream paper background */
+  --color-bg-raised: #FAF5E9; /* Light cream */
+  --color-ink:       #14110F; /* Ink black */
+  --color-ink-muted: #5A534C;
+  --color-ink-faint: #8E857C;
+  --color-border:    #14110F;
+
+  /* ── Canteen Food Accents ── */
+  --color-saffron:    #F28C1B; /* Primary saffron */
+  --color-chilli:     #D7312B; /* Chilli red */
+  --color-turmeric:   #F2B705; /* Turmeric yellow */
+  --color-curry-leaf: #2F6B3A; /* Curry-leaf green */
+  --color-steel:      #B8BCC2; /* Stainless steel grey */
+  --color-steel-dark: #878C94;
+  --color-steel-light:#E2E4E8;
+
+  /* ── Hard Offset Shadows (Brutal / Canteen Stamp) ── */
+  --shadow-offset-sm: 2px 2px 0px #14110F;
+  --shadow-offset-md: 3px 3px 0px #14110F;
+  --shadow-offset-lg: 4px 4px 0px #14110F;
+  --shadow-offset-xl: 6px 6px 0px #14110F;
+
+  /* ── Spacing & Layout ── */
+  --max-width: 1280px;
+  --section-pad-desktop: 96px;
+  --section-pad-mobile: 56px;
+}
+
+.dark {
+  --color-bg:        #1A1613; /* Night mess warm charcoal per brief */
+  --color-bg-raised: #25201C;
+  --color-ink:       #F4ECD8; /* Cream ink */
+  --color-ink-muted: #B8B0A2;
+  --color-ink-faint: #7C7468;
+  --color-border:    #F4ECD8;
+
+  --color-saffron:    #F28C1B;
+  --color-chilli:     #D7312B;
+  --color-turmeric:   #F2B705;
+  --color-curry-leaf: #2F6B3A;
+  --color-steel:      #B8BCC2;
+  --color-steel-dark: #878C94;
+  --color-steel-light:#E2E4E8;
+
+  --shadow-offset-sm: 2px 2px 0px #F4ECD8;
+  --shadow-offset-md: 3px 3px 0px #F4ECD8;
+  --shadow-offset-lg: 4px 4px 0px #F4ECD8;
+  --shadow-offset-xl: 6px 6px 0px #F4ECD8;
+}
