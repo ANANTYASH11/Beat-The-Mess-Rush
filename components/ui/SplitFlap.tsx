@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
 import { university } from '@/config/university';
 
 export interface SplitFlapProps {
@@ -11,13 +10,13 @@ export interface SplitFlapProps {
   crowdStatus?: string;
   className?: string;
   soundEnabled?: boolean;
-  rows?: [string, string];
+  text?: string;
+  rows?: string[];
 }
 
-const RANDOM_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-| ';
-const TOTAL_COLS = 32;
+const RANDOM_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789- ';
+const FIXED_COLS = 16;
 
-// Soft mechanical flap click using Web Audio API
 function playSoftFlapClick() {
   if (typeof window === 'undefined') return;
   try {
@@ -39,17 +38,14 @@ function playSoftFlapClick() {
 
     osc.start();
     osc.stop(ctx.currentTime + 0.024);
-  } catch {
-    // Ignore audio context restrictions
-  }
+  } catch {}
 }
 
-// Single mechanical split-flap cell
 function FlapChar({
   targetChar,
   delayMs,
   soundEnabled,
-  charColorClass = 'text-[#F4ECD8]',
+  charColorClass = 'text-[#FAF5E8]',
   isBoardInView = true,
 }: {
   targetChar: string;
@@ -103,8 +99,8 @@ function FlapChar({
             setIsFlippingBottom(true);
             setTimeout(() => {
               setIsFlippingBottom(false);
-            }, 35);
-          }, 35);
+            }, 30);
+          }, 30);
         }
       };
 
@@ -116,41 +112,23 @@ function FlapChar({
     };
   }, [targetChar, isBoardInView, delayMs, soundEnabled]);
 
-  const isSeparator = targetChar === '|';
-
-  let topTransform = 'rotateX(0deg)';
-  let bottomTransform = 'rotateX(0deg)';
-  let flapOpacity = 1;
-
-  if (isFlippingTop) {
-    topTransform = 'rotateX(-90deg)';
-    flapOpacity = 0.5;
-  } else if (isFlippingBottom) {
-    bottomTransform = 'rotateX(0deg)';
-    flapOpacity = 1;
-  }
+  const topTransform = isFlippingTop ? 'rotateX(-90deg)' : 'rotateX(0deg)';
+  const bottomTransform = isFlippingBottom ? 'rotateX(0deg)' : 'rotateX(90deg)';
+  const flapOpacity = isFlippingTop || isFlippingBottom ? 0.75 : 1;
 
   return (
     <span
-      className={`relative flex items-center justify-center bg-[#1C1917] ${
-        isSeparator ? 'text-[#F2B705]' : charColorClass
-      } border border-black/70 font-mono font-bold select-none shadow-[0px_1px_0px_#000000] overflow-hidden min-w-0 w-full rounded-[1px]`}
+      className={`relative inline-flex items-center justify-center font-mono font-black select-none overflow-hidden rounded-[2px] transition-transform duration-75 ${charColorClass}`}
       style={{
-        aspectRatio: '1 / 1.45',
-        maxHeight: '36px',
-        fontSize: 'clamp(7px, 1.35vw, 14px)',
-        perspective: '400px',
-        transformStyle: 'preserve-3d',
-        lineHeight: 1,
+        aspectRatio: '0.68',
+        backgroundColor: '#1E1A17',
+        border: '1px solid #332B25',
+        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.8), 0 1px 1px rgba(0,0,0,0.4)',
+        fontSize: 'clamp(14px, 2.2vw, 20px)',
       }}
     >
-      {/* Horizontal split seam */}
-      <span className="absolute inset-x-0 top-1/2 h-[1px] bg-[#0A0908] z-20 pointer-events-none" />
-
-      {/* Top half metallic highlight */}
+      <span className="absolute inset-x-0 top-1/2 h-[1px] bg-[#14110F] z-20 pointer-events-none" />
       <span className="absolute inset-x-0 top-0 h-1/2 bg-white/[0.04] z-10 pointer-events-none" />
-
-      {/* Animated character face */}
       <span
         className="inline-block transition-all duration-75 ease-in-out will-change-transform leading-none"
         style={{
@@ -166,22 +144,6 @@ function FlapChar({
   );
 }
 
-// Abbreviate mess name only when needed so it fits cleanly
-function formatMessBoardLabel(label: string): string {
-  const clean = (label || '').trim().toUpperCase();
-  if (clean.length <= 16) return clean;
-  return clean
-    .replace(/CENTRAL MESS /g, 'C ')
-    .replace(/CENTRAL /g, 'C ')
-    .replace(/BOYS HOSTEL MESS /g, 'BH ')
-    .replace(/BOYS HOSTEL /g, 'BH ')
-    .replace(/GIRLS HOSTEL MESS /g, 'GH ')
-    .replace(/GIRLS HOSTEL /g, 'GH ')
-    .replace(/BOYS STUDIO /g, 'BS ')
-    .replace(/GIRLS STUDIO /g, 'GS ');
-}
-
-// Center string into a fixed column count
 function padRowToCols(text: string, totalCols: number): string {
   const clean = text.trim();
   if (clean.length >= totalCols) return clean.slice(0, totalCols);
@@ -191,15 +153,15 @@ function padRowToCols(text: string, totalCols: number): string {
 }
 
 export function SplitFlap({
-  messLabel = university.messes[0]?.shortName.toUpperCase() || 'CENTRAL NORTH',
-  queueCount = 20,
-  waitRange = '6-11 MIN',
+  messLabel = 'CENTRAL NORTH',
+  queueCount = 18,
+  waitRange = '5-8 MIN',
   crowdStatus = 'BUSY',
   className = '',
-  soundEnabled: initialSound = false,
+  soundEnabled = false,
+  text,
   rows,
 }: SplitFlapProps) {
-  const [soundOn, setSoundOn] = useState(initialSound);
   const [inView, setInView] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
 
@@ -207,114 +169,40 @@ export function SplitFlap({
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setInView(true);
-          }
+          if (entry.isIntersecting) setInView(true);
         });
       },
       { threshold: 0.15 }
     );
-
-    if (boardRef.current) {
-      observer.observe(boardRef.current);
-    }
-
+    if (boardRef.current) observer.observe(boardRef.current);
     return () => observer.disconnect();
   }, []);
 
-  const normalizedStatus = crowdStatus.toUpperCase();
-
-  const getStatusColor = (status: string) => {
-    if (status.includes('LOW')) return 'text-[#58B971]';
-    if (status.includes('MED')) return 'text-[#F2B705]';
-    return 'text-[#D7312B]';
-  };
-
-  const statusColorClass = getStatusColor(normalizedStatus);
-
-  // Compute Row 1 and Row 2 per specification:
-  // Row 1: "CENTRAL SOUTH" (abbreviated only if needed: "C SOUTH")
-  // Row 2: "QUEUE 20 | WAIT 6-11 MIN | BUSY"
-  const rawRow1 = rows?.[0] || formatMessBoardLabel(messLabel);
-  const rawRow2 =
-    rows?.[1] ||
-    `QUEUE ${queueCount} | WAIT ${waitRange.toUpperCase()} | ${normalizedStatus}`;
-
-  const row1Text = padRowToCols(rawRow1, TOTAL_COLS);
-  const row2Text = padRowToCols(rawRow2, TOTAL_COLS);
-
-  const renderRow = (text: string, baseIndex: number, defaultColor = 'text-[#F4ECD8]') => {
-    const statusStartIndex = text.indexOf(normalizedStatus);
-    const statusEndIndex = statusStartIndex >= 0 ? statusStartIndex + normalizedStatus.length : -1;
-
-    return text.split('').map((ch, idx) => {
-      let colorClass = defaultColor;
-      if (statusStartIndex >= 0 && idx >= statusStartIndex && idx < statusEndIndex) {
-        colorClass = statusColorClass;
-      }
-
-      return (
-        <FlapChar
-          key={`${baseIndex}-${idx}`}
-          targetChar={ch}
-          delayMs={(baseIndex + idx) * 20}
-          soundEnabled={soundOn}
-          charColorClass={colorClass}
-          isBoardInView={inView}
-        />
-      );
-    });
-  };
+  const rawRow = rows && rows.length > 0 ? rows[0] : (text || `QUEUE ${queueCount} - ${crowdStatus.toUpperCase()}`);
+  const rowText = padRowToCols(rawRow, FIXED_COLS);
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* ── MECHANICAL CHASSIS (Deep ink enclosure with brass bezel accent) ── */}
-      <section
-        ref={boardRef}
-        className="w-full bg-[#14110F] dark:bg-[#120F0D] border-2 border-ink rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-offset-md select-none relative overflow-hidden"
-        role="status"
-        aria-live="polite"
+    <div
+      ref={boardRef}
+      className={`w-full bg-[#14110F] border-2 border-ink rounded-xl p-3 sm:p-4 select-none ${className}`}
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className="w-full grid gap-1 max-w-[420px] mx-auto"
+        style={{
+          gridTemplateColumns: `repeat(${FIXED_COLS}, minmax(0, 1fr))`,
+        }}
       >
-        <div className="w-full flex flex-col items-center gap-1.5 sm:gap-3">
-          {/* Subtle top board tag */}
-          <div className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-[#8E857C] text-center">
-            UNIQ LIVE COUNTER STATUS
-          </div>
-
-          {/* ── ROW 1: MESS SHORT NAME (Fixed 32 columns, zero overflow) ── */}
-          <div
-            className="w-full grid gap-[1px]"
-            style={{
-              gridTemplateColumns: `repeat(${TOTAL_COLS}, minmax(0, 1fr))`,
-            }}
-          >
-            {renderRow(row1Text, 0, 'text-[#F4ECD8]')}
-          </div>
-
-          {/* ── ROW 2: QUEUE 20 | WAIT 6-11 MIN | BUSY (Fixed 32 columns, zero overflow) ── */}
-          <div
-            className="w-full grid gap-[1px]"
-            style={{
-              gridTemplateColumns: `repeat(${TOTAL_COLS}, minmax(0, 1fr))`,
-            }}
-          >
-            {renderRow(row2Text, row1Text.length + 2)}
-          </div>
-        </div>
-      </section>
-
-      {/* ── MUTE / SOUND TOGGLE: Positioned below board, right-aligned, zero overlapping ── */}
-      <div className="flex justify-end items-center mt-2 px-1">
-        <button
-          type="button"
-          onClick={() => setSoundOn(!soundOn)}
-          title={soundOn ? 'Click sound enabled (click to mute)' : 'Click sound muted (click to enable)'}
-          aria-label={soundOn ? 'Mute split-flap sound' : 'Enable split-flap sound'}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold text-ink-muted hover:text-ink bg-bg-raised border border-ink/40 rounded-lg shadow-offset-xs transition-colors"
-        >
-          {soundOn ? <Volume2 size={13} className="text-saffron" /> : <VolumeX size={13} />}
-          <span>{soundOn ? 'FLAP SOUND: ON' : 'FLAP SOUND: MUTED'}</span>
-        </button>
+        {rowText.split('').map((ch, idx) => (
+          <FlapChar
+            key={idx}
+            targetChar={ch}
+            delayMs={idx * 25}
+            soundEnabled={soundEnabled}
+            isBoardInView={inView}
+          />
+        ))}
       </div>
     </div>
   );

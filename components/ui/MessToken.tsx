@@ -54,6 +54,7 @@ export function triggerRiceChilliConfetti() {
 
 interface MessTokenProps {
   booking?: any;
+  token?: any;
   tokenNumber?: number;
   qrDataUrl?: string;
   fourDigitCode?: string;
@@ -62,12 +63,15 @@ interface MessTokenProps {
   portion?: string;
   dietType?: string;
   rollNumber?: string;
+  studentRoll?: string;
+  messName?: string;
   onEdit?: () => void;
   onSkip?: () => void;
 }
 
 export function MessToken({
   booking,
+  token,
   tokenNumber,
   qrDataUrl = '',
   fourDigitCode,
@@ -76,29 +80,33 @@ export function MessToken({
   portion,
   dietType,
   rollNumber = university.rollNumberExample,
+  studentRoll,
+  messName,
   onEdit,
   onSkip,
 }: MessTokenProps) {
+  const effectiveBooking = booking || token;
+  const effectiveRoll = studentRoll || rollNumber;
   const [stampLanded, setStampLanded] = useState(false);
   const [shaking, setShaking] = useState(false);
 
   // Normalize props from booking object if passed
   const tokenNum =
     tokenNumber ??
-    booking?.tokenNumber ??
-    (booking?.checkinCode ? parseInt(booking.checkinCode.slice(-2), 10) : 12) ??
+    effectiveBooking?.tokenNumber ??
+    (effectiveBooking?.checkinCode ? parseInt(effectiveBooking.checkinCode.slice(-2), 10) : 12) ??
     12;
   const pin =
     fourDigitCode ??
-    booking?.checkinCode ??
+    effectiveBooking?.checkinCode ??
     '8492';
   const slot =
     slotTime ??
-    (booking?.slotStart ? `${booking.slotStart} - ${booking.slotEnd || ''}` : `${university.meals[1]?.start || '12:30'} - 12:45`);
-  const mealName = meal ?? booking?.mealType ?? 'Lunch';
-  const portionName = portion ?? booking?.portion ?? 'Regular';
-  const diet = dietType ?? booking?.dietType ?? 'Veg';
-  const dateStr = booking?.date || new Date().toISOString().split('T')[0];
+    (effectiveBooking?.slotStart ? `${effectiveBooking.slotStart} - ${effectiveBooking.slotEnd || ''}` : `${university.meals[1]?.start || '12:30'} - 12:45`);
+  const mealName = meal ?? effectiveBooking?.mealType ?? 'Lunch';
+  const portionName = portion ?? effectiveBooking?.portion ?? 'Regular';
+  const diet = dietType ?? effectiveBooking?.dietType ?? 'Veg';
+  const dateStr = effectiveBooking?.date || new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     // Trigger screen shake right when stamp slams down

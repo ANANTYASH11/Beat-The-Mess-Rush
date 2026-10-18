@@ -16,6 +16,7 @@ import {
   Info,
 } from 'lucide-react';
 import { university, MessConfig } from '@/config/university';
+import QRCode from 'qrcode';
 
 interface Props {
   params: {
@@ -30,6 +31,86 @@ export default function UniversitySetupPage({ params }: Props) {
   const [messes, setMesses] = useState<MessConfig[]>(university.messes);
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [dataMode, setDataMode] = useState<'demo' | 'live'>('demo');
+
+  // Display screen keys state
+  const [displayKeys, setDisplayKeys] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    university.messes.forEach((m) => {
+      initial[m.id] = `kiosk_${m.id}_2026`;
+    });
+    return initial;
+  });
+
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
+
+  // Feature Flags State (Default all OFF)
+  const [flags, setFlags] = useState<{
+    timetable: boolean;
+    voting: boolean;
+    challenge: boolean;
+    display_challenge_ticker: boolean;
+  }>({
+    timetable: false,
+    voting: false,
+    challenge: false,
+    display_challenge_ticker: false,
+  });
+
+  // Load feature flags on mount
+  useEffect(() => {
+    fetch(`/api/admin/feature-flags?slug=${slug}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.flags) {
+          setFlags(data.flags);
+        }
+      })
+      .catch((e) => console.error('Error fetching flags:', e));
+  }, [slug]);
+
+  const toggleFlag = async (flagKey: keyof typeof flags) => {
+    const newVal = !flags[flagKey];
+    setFlags((prev) => ({ ...prev, [flagKey]: newVal }));
+
+    try {
+      await fetch('/api/admin/feature-flags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug,
+          [flagKey]: newVal,
+        }),
+      });
+    } catch (e) {
+      console.error('Error saving flag:', e);
+    }
+  };
+
+  useEffect(() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    messes.forEach((m) => {
+      const url = `${origin}/u/${slug}/display/${m.id}?kiosk=1&key=${displayKeys[m.id] || 'kiosk'}`;
+      QRCode.toDataURL(url, { width: 120, margin: 1, color: { dark: '#14110F', light: '#FAF5E8' } })
+        .then((dataUrl) => {
+          setQrCodes((prev) => ({ ...prev, [m.id]: dataUrl }));
+        })
+        .catch(() => {});
+    });
+  }, [messes, slug, displayKeys]);
+
+  const handleCopy = (messId: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const url = `${origin}/u/${slug}/display/${messId}?kiosk=1&key=${displayKeys[messId] || 'kiosk'}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(messId);
+    setTimeout(() => setCopiedId(null), 2500);
+  };
+
+  const handleRotateKey = (messId: string) => {
+    const newKey = `kiosk_${messId}_${Math.random().toString(36).substring(2, 8)}`;
+    setDisplayKeys((prev) => ({ ...prev, [messId]: newKey }));
+  };
 
   const filteredMesses = messes.filter((m) => {
     if (activeFilter === 'ALL') return true;
@@ -167,6 +248,113 @@ export default function UniversitySetupPage({ params }: Props) {
         </div>
       </div>
 
+      {/* ── DISPLAY SCREENS & ENTRANCE KIOSK SETUP CARD ── */}
+      <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 sm:p-8 shadow-brutal-md space-y-6">
+        <div className="border-b-2 border-[#14110F]/15 pb-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono text-[10px] font-black uppercase tracking-widest bg-[#14110F] text-[#FAF5E8] px-2.5 py-0.5 rounded">
+              HARDWARE &amp; ENTRANCE SIGNAGE
+            </span>
+          </div>
+          <h2 className="font-display text-2xl sm:text-3xl font-black uppercase text-[#14110F] tracking-wide">
+            DISPLAY SCREENS &amp; ENTRANCE KIOSKS
+          </h2>
+          <p className="font-serif italic text-xs text-[#5C554F]">
+            Dedicated entrance signage screens for dining hall gates. Real-time queues, quiet slots, and instant booking QR.
+          </p>
+        </div>
+
+        {/* Short Plain-Text Checklist */}
+        <div className="p-4 rounded-xl bg-[#FFF8E7] border-2 border-[#14110F] space-y-2 font-mono text-xs">
+          <div className="font-black uppercase text-[#14110F] flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#2F6B3A]" />
+            <span>Kiosk Hardware Setup Checklist:</span>
+          </div>
+          <ul className="space-y-1.5 text-[#423933] pl-6 list-disc">
+            <li><strong>Use a TV or tablet:</strong> Any Smart TV browser, Android TV, iPad, or Android tablet at the entrance gate.</li>
+            <li><strong>Open the URL in kiosk mode:</strong> Add <code className="bg-[#14110F]/10 px-1.5 py-0.5 rounded font-bold">?kiosk=1</code> to hide navigation controls, sign-in buttons, and cursor.</li>
+            <li><strong>Keep it plugged in:</strong> Connect the screen to wall power so the display stays awake continuously during serving hours.</li>
+            <li><strong>Confirm Wi-Fi:</strong> Connect the device to campus Wi-Fi for live updates every 10 seconds.</li>
+          </ul>
+        </div>
+
+        {/* Mess Display Screens Directory */}
+        <div className="space-y-4">
+          <h3 className="font-display text-xl uppercase font-black text-[#14110F]">
+            Entrance Signage URLs ({messes.length} Messes)
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {messes.map((m) => {
+              const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+              const currentKey = displayKeys[m.id] || 'kiosk';
+              const displayUrl = `${origin}/u/${slug}/display/${m.id}?kiosk=1&key=${currentKey}`;
+
+              return (
+                <div
+                  key={m.id}
+                  className="p-4 rounded-xl border-2 border-[#14110F] bg-white flex flex-col justify-between gap-3 shadow-brutal-xs"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-display text-lg font-bold uppercase text-[#14110F] truncate">
+                        {m.name}
+                      </div>
+                      <div className="font-mono text-[11px] text-[#5C554F]">
+                        Code: {m.id} • Key: <span className="font-bold text-[#14110F]">{currentKey}</span>
+                      </div>
+                    </div>
+
+                    {/* QR Code */}
+                    {qrCodes[m.id] ? (
+                      <img
+                        src={qrCodes[m.id]}
+                        alt={`QR code for ${m.name}`}
+                        className="w-16 h-16 border border-[#14110F] rounded shrink-0 bg-[#FAF5E8]"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 border border-[#14110F] rounded bg-[#FAF5E8] shrink-0 animate-pulse" />
+                    )}
+                  </div>
+
+                  {/* URL Box */}
+                  <div className="p-2 rounded bg-[#FAF5E8] border border-[#14110F]/30 font-mono text-[11px] text-[#14110F] break-all select-all">
+                    {displayUrl}
+                  </div>
+
+                  {/* Actions Row */}
+                  <div className="flex items-center gap-2 font-mono text-xs pt-1 border-t border-[#14110F]/15 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(m.id)}
+                      className="px-3 py-1 bg-[#14110F] text-[#FAF5E8] rounded font-bold uppercase hover:bg-[#2A2521] transition text-[11px]"
+                    >
+                      {copiedId === m.id ? 'Copied!' : 'Copy URL'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRotateKey(m.id)}
+                      className="px-3 py-1 bg-transparent text-[#14110F] border border-[#14110F] rounded font-bold uppercase hover:bg-[#FAF5E8] transition text-[11px]"
+                    >
+                      Rotate key
+                    </button>
+
+                    <Link
+                      href={`/u/${slug}/display/${m.id}?kiosk=1&key=${currentKey}`}
+                      target="_blank"
+                      className="px-3 py-1 bg-saffron text-ink rounded font-bold uppercase border border-ink hover:bg-saffron/90 transition text-[11px] ml-auto"
+                    >
+                      Test preview ↗
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* ── 19 MESSES AUDIT DIRECTORY ── */}
       <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 shadow-brutal-lg space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b-2 border-[#14110F]/15 pb-3">
@@ -281,13 +469,213 @@ export default function UniversitySetupPage({ params }: Props) {
 
               {/* Footer status */}
               <div className="pt-2 border-t border-[#14110F]/15 flex items-center justify-between text-[10px] font-mono">
-                <span className="text-[#5C554F]">DATA SOURCE:</span>
-                <span className="font-black text-[#F28C1B] uppercase tracking-wider">
-                  {m.dataSource}
-                </span>
+                <span className="text-[#5C554F]">Status:</span>
+                <span className="font-bold text-[#2F6B3A] uppercase">Active &amp; Ready</span>
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── FEATURE FLAGS & ADVANCED MODULES ── */}
+      <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 shadow-brutal-md space-y-6" id="feature-flags-card">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-[#14110F]/15 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] font-black uppercase tracking-widest bg-[#14110F] text-[#FAF5E8] px-2 py-0.5 rounded">
+                PER-UNIVERSITY CONTROLS
+              </span>
+              <h2 className="font-display text-2xl font-black uppercase text-[#14110F] tracking-wide">
+                FEATURE FLAGS &amp; OPTIONAL MODULES
+              </h2>
+            </div>
+            <p className="font-serif italic text-xs text-[#5C554F] mt-0.5">
+              Strictly tenant-isolated. Default state is OFF for all advanced modules.
+            </p>
+          </div>
+
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/admin/feature-flags', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ slug, reset: true }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  setFlags(data.flags);
+                }
+              } catch (e) {
+                console.error(e);
+              }
+            }}
+            className="px-3 py-1.5 border-2 border-[#14110F] bg-white rounded-lg font-mono text-xs font-bold hover:bg-[#FAF5E8]"
+          >
+            Reset All to Defaults (OFF)
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Flag 1: Timetable */}
+          <div className="p-4 bg-white border-2 border-[#14110F] rounded-xl flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <div className="font-mono text-xs font-black uppercase text-[#14110F] flex items-center gap-2">
+                <span>Class-Timetable Arrival Prediction</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${
+                    flags.timetable ? 'bg-[#2F6B3A] text-white' : 'bg-[#14110F]/10 text-[#14110F]'
+                  }`}
+                >
+                  {flags.timetable ? 'ACTIVE' : 'OFF'}
+                </span>
+              </div>
+              <p className="font-serif text-[11px] text-[#5C554F]">
+                Aggregate class schedule imports, expected 5-minute arrival curves, early counter spike warnings, and schedule what-if analysis.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href={`/u/${slug}/admin/timetable`}
+                  className="font-mono text-xs font-bold text-saffron uppercase hover:underline flex items-center gap-1"
+                >
+                  Manage Timetable CSV &amp; What-If →
+                </Link>
+              </div>
+            </div>
+
+            <button
+              onClick={() => toggleFlag('timetable')}
+              className={`w-12 h-6 rounded-full border-2 border-[#14110F] transition-colors relative shrink-0 ${
+                flags.timetable ? 'bg-saffron' : 'bg-gray-300'
+              }`}
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-[#14110F] absolute top-0.5 transition-transform ${
+                  flags.timetable ? 'left-6' : 'left-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Flag 2: Menu Voting */}
+          <div className="p-4 bg-white border-2 border-[#14110F] rounded-xl flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <div className="font-mono text-xs font-black uppercase text-[#14110F] flex items-center gap-2">
+                <span>Weekly Menu Voting</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${
+                    flags.voting ? 'bg-[#2F6B3A] text-white' : 'bg-[#14110F]/10 text-[#14110F]'
+                  }`}
+                >
+                  {flags.voting ? 'ACTIVE' : 'OFF'}
+                </span>
+              </div>
+              <p className="font-serif text-[11px] text-[#5C554F]">
+                Student candidate dish voting per slot, 1-vote privacy separation, advisory committee signals, and side-by-side waste correlation.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href={`/u/${slug}/admin/voting`}
+                  className="font-mono text-xs font-bold text-saffron uppercase hover:underline flex items-center gap-1"
+                >
+                  Manage Weekly Ballots →
+                </Link>
+              </div>
+            </div>
+
+            <button
+              onClick={() => toggleFlag('voting')}
+              className={`w-12 h-6 rounded-full border-2 border-[#14110F] transition-colors relative shrink-0 ${
+                flags.voting ? 'bg-saffron' : 'bg-gray-300'
+              }`}
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-[#14110F] absolute top-0.5 transition-transform ${
+                  flags.voting ? 'left-6' : 'left-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Flag 3: Zero Waste Week */}
+          <div className="p-4 bg-white border-2 border-[#14110F] rounded-xl flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <div className="font-mono text-xs font-black uppercase text-[#14110F] flex items-center gap-2">
+                <span>Zero Waste Week Challenge</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${
+                    flags.challenge ? 'bg-[#2F6B3A] text-white' : 'bg-[#14110F]/10 text-[#14110F]'
+                  }`}
+                >
+                  {flags.challenge ? 'ACTIVE' : 'OFF'}
+                </span>
+              </div>
+              <p className="font-serif text-[11px] text-[#5C554F]">
+                Inter-mess challenge scored against 4-week baselines, division fairness, satisfaction guards, and anonymous student clean-plate pledges.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href={`/u/${slug}/zero-waste`}
+                  className="font-mono text-xs font-bold text-saffron uppercase hover:underline flex items-center gap-1"
+                >
+                  View Challenge Leaderboard →
+                </Link>
+              </div>
+            </div>
+
+            <button
+              onClick={() => toggleFlag('challenge')}
+              className={`w-12 h-6 rounded-full border-2 border-[#14110F] transition-colors relative shrink-0 ${
+                flags.challenge ? 'bg-saffron' : 'bg-gray-300'
+              }`}
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-[#14110F] absolute top-0.5 transition-transform ${
+                  flags.challenge ? 'left-6' : 'left-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Flag 4: Display Screen Ticker */}
+          <div className="p-4 bg-white border-2 border-[#14110F] rounded-xl flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <div className="font-mono text-xs font-black uppercase text-[#14110F] flex items-center gap-2">
+                <span>Display Screen Challenge Line</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${
+                    flags.display_challenge_ticker ? 'bg-[#2F6B3A] text-white' : 'bg-[#14110F]/10 text-[#14110F]'
+                  }`}
+                >
+                  {flags.display_challenge_ticker ? 'ACTIVE' : 'OFF'}
+                </span>
+              </div>
+              <p className="font-serif text-[11px] text-[#5C554F]">
+                Rotates live challenge standings (e.g. &quot;This week: Girls Hostel 3 leads at -18% waste&quot;) on entrance kiosks (/display).
+              </p>
+              <div className="pt-2">
+                <Link
+                  href={`/u/${slug}/display/${university.messes[0].id}?kiosk=1`}
+                  className="font-mono text-xs font-bold text-saffron uppercase hover:underline flex items-center gap-1"
+                >
+                  Preview Kiosk Entrance Display →
+                </Link>
+              </div>
+            </div>
+
+            <button
+              onClick={() => toggleFlag('display_challenge_ticker')}
+              className={`w-12 h-6 rounded-full border-2 border-[#14110F] transition-colors relative shrink-0 ${
+                flags.display_challenge_ticker ? 'bg-saffron' : 'bg-gray-300'
+              }`}
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-[#14110F] absolute top-0.5 transition-transform ${
+                  flags.display_challenge_ticker ? 'left-6' : 'left-1'
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
 

@@ -1,44 +1,48 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Scale,
+  Calendar,
+  Sliders,
+  ChevronDown,
   Download,
   CheckCircle2,
   HeartHandshake,
-  TrendingDown,
-  Calendar,
-  Utensils,
-  Sliders,
-  AlertTriangle,
 } from 'lucide-react';
 import { useForecast } from '@/hooks/useForecast';
-import { TactileButton } from '@/components/ui/TactileButton';
-import { StampBadge } from '@/components/ui/StampBadge';
-import { StickyNote } from '@/components/ui/StickyNote';
-import { KitchenScaleDial } from '@/components/ui/KitchenScaleDial';
-import { SteelWeightButton } from '@/components/ui/SteelWeightButton';
 import { FillingWasteBin } from '@/components/ui/FillingWasteBin';
+import { SteelWeightButton } from '@/components/ui/SteelWeightButton';
 import { playDhabaSound } from '@/components/ui/CraftedInteractions';
-import AttendanceChart from '@/components/AttendanceChart';
+import dynamic from 'next/dynamic';
 import { university } from '@/config/university';
-import { CompareMessesTable } from '@/components/mess/CompareMessesTable';
-import { UniQInsightsPanel } from '@/components/insights/UniQInsightsPanel';
+import { useSelectedMess } from '@/hooks/useSelectedMess';
+import { useOfflineQueue } from '@/hooks/useOfflineQueue';
+
+const AttendanceChart = dynamic(
+  () => import('@/components/AttendanceChart'),
+  {
+    ssr: false,
+    loading: () => <div className="h-[220px] w-full bg-ink/5 border-2 border-ink rounded-xl animate-pulse" />,
+  }
+);
+
+const CompareMessesTable = dynamic(
+  () => import('@/components/mess/CompareMessesTable').then((m) => m.CompareMessesTable),
+  {
+    ssr: false,
+    loading: () => <div className="h-[300px] w-full bg-ink/5 border-2 border-ink rounded-xl animate-pulse" />,
+  }
+);
 
 export default function KitchenPage() {
   const [activeTab, setActiveTab] = useState<'forecast' | 'waste' | 'reports' | 'compare'>('forecast');
-  const [messCode, setMessCode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('uniq_selected_mess') || university.messes[0].id;
-    }
-    return university.messes[0].id;
-  });
+  const { messId, mess: activeMess, shortName } = useSelectedMess();
+  const messCode = messId;
   const [mealType, setMealType] = useState<'Breakfast' | 'Lunch' | 'Snacks' | 'Dinner'>('Lunch');
   const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
 
-  // Hook for blended forecast
-  const { forecast, isLoading, refreshForecast } = useForecast(messCode, dateStr, mealType);
+  // Hook for blended forecast (SWR keyed with messId)
+  const { forecast, isLoading, refreshForecast } = useForecast(messId, dateStr, mealType);
 
   // Configuration state
   const [eventTitle, setEventTitle] = useState('');
@@ -46,18 +50,57 @@ export default function KitchenPage() {
   const [safetyBufferPct, setSafetyBufferPct] = useState(8);
   const [savingConfig, setSavingConfig] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
-  const [showDrivers, setShowDrivers] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+
+  // Cooking quantities override state
+  const [dishOverrides, setDishOverrides] = useState<Record<string, number>>({});
+  const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>({});
 
   // 30-Second Waste Logger state
   const [dishLeftovers, setDishLeftovers] = useState<Record<string, number>>({});
   const [plateWasteTotalKg, setPlateWasteTotalKg] = useState(28);
-  const [actualPlates, setActualPlates] = useState(Math.round((university.messes[0].seats || 350) * 1.15));
+  const [actualPlates, setActualPlates] = useState(Math.round((activeMess.seats || 350) * 1.15));
   const [wasteSuccessMsg, setWasteSuccessMsg] = useState('');
   const [surplusNotice, setSurplusNotice] = useState<{ kg: number; message: string } | null>(null);
   const [ngoContactInput, setNgoContactInput] = useState(university.ngoContact);
 
   // Reports state
   const [reportsData, setReportsData] = useState<any>(null);
+
+  // Offline queue hook for warning on unsynced actions
+  const { getPendingActionsForMess } = useOfflineQueue();
+  const prevMessIdRef = useRef<string>(messId);
+  const isInitialMountRef = useRef<boolean>(true);
+
+  // Reset dependent state on mess change
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+
+    if (prevMessIdRef.current !== messId) {
+      const oldMessId = prevMessIdRef.current;
+      prevMessIdRef.current = messId;
+
+      // Check unsynced offline actions for old mess
+      const unsyncedOld = getPendingActionsForMess(oldMessId);
+      if (unsyncedOld.length > 0) {
+        const oldMess = university.messes.find((m) => m.id === oldMessId);
+        const oldName = oldMess?.shortName || oldMess?.name || 'Central South';
+        setStatusMessage(`${unsyncedOld.length} actions for ${oldName} are still syncing`);
+      } else {
+        setStatusMessage(`Loaded ${activeMess.name}`);
+      }
+
+      setDishLeftovers({});
+      setDishOverrides({});
+      setExpandedOverrides({});
+      setReportsData(null);
+      setWasteSuccessMsg('');
+      setSurplusNotice(null);
+    }
+  }, [messId, activeMess.name, getPendingActionsForMess]);
 
   // Sync forecast fields
   useEffect(() => {
@@ -103,7 +146,7 @@ export default function KitchenPage() {
       });
 
       if (res.ok) {
-        setStatusMessage('Configuration saved. Quantities recalculated.');
+        setStatusMessage('Adjustment applied and forecast recalculated.');
         refreshForecast();
         playDhabaSound('stamp');
         setTimeout(() => setStatusMessage(''), 3500);
@@ -113,6 +156,29 @@ export default function KitchenPage() {
     } finally {
       setSavingConfig(false);
     }
+  };
+
+  // Toggle dish override input
+  const toggleOverride = (menuItemId: string) => {
+    setExpandedOverrides((prev) => ({
+      ...prev,
+      [menuItemId]: !prev[menuItemId],
+    }));
+  };
+
+  const handleOverrideChange = (menuItemId: string, val: number) => {
+    setDishOverrides((prev) => ({
+      ...prev,
+      [menuItemId]: val,
+    }));
+  };
+
+  const resetOverride = (menuItemId: string) => {
+    setDishOverrides((prev) => {
+      const next = { ...prev };
+      delete next[menuItemId];
+      return next;
+    });
   };
 
   // Preset Leftover Button Tap (Under 30s UX)
@@ -166,596 +232,608 @@ export default function KitchenPage() {
     }
   };
 
-  const confidenceScore =
-    forecast?.confidenceLevel === 'High'
-      ? 90
-      : forecast?.confidenceLevel === 'Moderate'
-      ? 65
-      : 35;
+  // Forecast numbers
+  const expectedPlates = forecast?.expectedPlates ?? (mealType === 'Snacks' ? 320 : 505);
+  const p10Plates = forecast?.mlRange?.p10 ?? Math.round((expectedPlates * 0.94) / 10) * 10;
+  const p90Plates = forecast?.mlRange?.p90 ?? Math.round((expectedPlates * 1.08) / 10) * 10;
+  const rangeDisplay = `About ${p10Plates}–${p90Plates} plates`;
+  const bookedCount = forecast?.bookedPlates ?? 0;
+  const adoptionPct = forecast?.adoptionPct ?? 0;
+  const confidenceLevel = forecast?.confidenceLevel ?? (bookedCount === 0 ? 'Low' : 'Moderate');
+  const displayConfidence = confidenceLevel === 'Moderate' ? 'Medium' : confidenceLevel;
+
+  const confidenceSentence =
+    bookedCount === 0
+      ? 'Low confidence: nobody has pre-booked yet, so this relies on past weeks.'
+      : `${displayConfidence} confidence: ${
+          forecast?.confidenceNote || 'Relying on past weeks and student booking trends.'
+        }`;
 
   // Calculate total waste logged for the filling bin graphic
   const totalLeftoversKg = Object.values(dishLeftovers).reduce((a, b) => a + (Number(b) || 0), 0);
   const totalCombinedWaste = totalLeftoversKg + (Number(plateWasteTotalKg) || 0);
 
   return (
-    <div className="w-full space-y-7 pb-16" id="kitchen-chalkboard-page">
-      {/* 1. KITCHEN BOARD HEADER & PAPER ORDER SLIP TABS */}
-      <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-5 sm:p-7 shadow-brutal-lg">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] font-black uppercase tracking-widest bg-[#14110F] text-[#FAF5E8] px-2.5 py-0.5 rounded">
-                UniQ KITCHEN HEADQUARTERS
-              </span>
-              <span className="font-serif italic text-xs text-[#5C554F]">
-                रसोई उत्पादन एवं अपशिष्ट
-              </span>
-            </div>
-            <h1 className="font-display text-4xl sm:text-5xl font-black text-[#14110F] uppercase tracking-wide">
-              CHALKBOARD MENU &amp; FORECAST
-            </h1>
-            <p className="font-serif text-sm text-[#5C554F]">
-              Blended historical attendance, student bookings and automated portion right-sizing.
-            </p>
+    <div
+      className="w-full max-w-[1280px] mx-auto px-6 lg:px-8 py-6 space-y-8 pb-24 text-[14px] text-ink font-body"
+      id="kitchen-page"
+    >
+      {/* ── 1. PLAIN HEADER ── */}
+      <header className="space-y-4">
+        <div className="space-y-1">
+          <div className="font-mono text-[14px] font-bold uppercase tracking-wider text-ink-muted">
+            Kitchen — {activeMess.name || shortName}
           </div>
-
-          {/* Subtab Switcher Styled as Paper Order Slips */}
-          <div className="flex bg-[#E8DFC7] p-1.5 rounded-xl border-2 border-[#14110F] gap-1 self-stretch md:self-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('forecast');
-                playDhabaSound('press');
-              }}
-              className={`px-4 py-2 font-display text-base tracking-wider uppercase rounded-lg border-2 transition-all ${
-                activeTab === 'forecast'
-                  ? 'bg-[#14110F] text-[#FAF5E8] border-[#14110F] shadow-brutal-xs -translate-y-0.5'
-                  : 'bg-transparent text-[#5C554F] border-transparent hover:text-[#14110F]'
-              }`}
-            >
-              CHALKBOARD FORECAST
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('waste');
-                playDhabaSound('press');
-              }}
-              className={`px-4 py-2 font-display text-base tracking-wider uppercase rounded-lg border-2 transition-all ${
-                activeTab === 'waste'
-                  ? 'bg-[#14110F] text-[#FAF5E8] border-[#14110F] shadow-brutal-xs -translate-y-0.5'
-                  : 'bg-transparent text-[#5C554F] border-transparent hover:text-[#14110F]'
-              }`}
-            >
-              30S WASTE LOG
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('reports');
-                playDhabaSound('press');
-              }}
-              className={`px-4 py-2 font-display text-base tracking-wider uppercase rounded-lg border-2 transition-all ${
-                activeTab === 'reports'
-                  ? 'bg-[#14110F] text-[#FAF5E8] border-[#14110F] shadow-brutal-xs -translate-y-0.5'
-                  : 'bg-transparent text-[#5C554F] border-transparent hover:text-[#14110F]'
-              }`}
-            >
-              CSV REPORTS
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('compare');
-                playDhabaSound('press');
-              }}
-              className={`px-4 py-2 font-display text-base tracking-wider uppercase rounded-lg border-2 transition-all ${
-                activeTab === 'compare'
-                  ? 'bg-[#14110F] text-[#FAF5E8] border-[#14110F] shadow-brutal-xs -translate-y-0.5'
-                  : 'bg-transparent text-[#5C554F] border-transparent hover:text-[#14110F]'
-              }`}
-            >
-              COMPARE MESSES (19)
-            </button>
-          </div>
+          <h1 className="font-display text-4xl sm:text-5xl font-black text-ink uppercase tracking-wide">
+            Forecast
+          </h1>
+          <p className="font-serif text-[16px] text-ink-muted">
+            Blended historical attendance, student bookings, and automated portion sizing.
+          </p>
         </div>
 
-        {/* Date & Meal Filter Strip */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-6 pt-4 border-t-2 border-[#14110F]/15 font-mono text-xs">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-[#FAF5E8] border-2 border-[#14110F] px-2.5 py-1 rounded-lg">
-              <Calendar className="w-4 h-4 text-[#F28C1B]" />
-              <input
-                type="date"
-                value={dateStr}
-                onChange={(e) => setDateStr(e.target.value)}
-                className="bg-transparent font-mono text-xs text-[#14110F] font-bold focus:outline-none"
-              />
-            </div>
+        {/* Simple Underlined Tab Row */}
+        <nav className="flex border-b-2 border-ink/20 gap-6 overflow-x-auto text-[14px] font-mono">
+          {[
+            { id: 'forecast', label: 'Forecast' },
+            { id: 'waste', label: 'Waste log' },
+            { id: 'reports', label: 'Reports' },
+            { id: 'compare', label: 'Compare messes (19)' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.id as any);
+                playDhabaSound('press');
+              }}
+              className={`py-3.5 min-h-[48px] flex items-center font-bold uppercase transition-colors whitespace-nowrap cursor-pointer ${
+                activeTab === tab.id
+                  ? 'border-b-2 border-ink text-ink -mb-[2px]'
+                  : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-            <div className="flex gap-1 flex-wrap">
-              {(['Breakfast', 'Lunch', 'Snacks', 'Dinner'] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => {
-                    setMealType(m);
-                    playDhabaSound('press');
-                  }}
-                  className={`px-3 py-1 font-display tracking-wider text-sm uppercase rounded border-2 border-[#14110F] transition ${
-                    mealType === m
-                      ? 'bg-[#F28C1B] text-[#14110F] font-bold shadow-brutal-xs'
-                      : 'bg-[#F4ECD8] text-[#5C554F]'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
+        {/* Date and Meal Pills in One Row */}
+        <div className="flex flex-wrap items-center gap-3 font-mono text-[14px]">
+          <div className="flex items-center gap-2 px-3 py-1.5 border-2 border-ink rounded-lg bg-bg-raised">
+            <Calendar className="w-4 h-4 text-ink-muted shrink-0" />
+            <input
+              type="date"
+              value={dateStr}
+              onChange={(e) => setDateStr(e.target.value)}
+              className="bg-transparent font-mono text-[14px] text-ink font-bold focus:outline-none cursor-pointer"
+            />
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <div className="font-mono text-xs font-bold text-[#5C554F]">
-              BASELINE: {forecast?.historicalAvgPlates ?? (mealType === 'Snacks' ? 320 : 505)} PLATES
-            </div>
-            <span className="font-mono text-[11px] bg-saffron/20 border border-[#14110F]/40 text-[#14110F] px-2.5 py-0.5 rounded font-bold">
-              {forecast?.planSplitLabel || `${mealType}: 62% of students on a plan with ${mealType.toLowerCase()} (assumption)`}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. TAB 1: CHALKBOARD MENU ON THE WALL + PAPER ORDER SLIP */}
-      {activeTab === 'forecast' && (
-        <div className="space-y-7">
-          {/* Top Row: Paper Order Slip + Kitchen-Scale Dial + Modifiers */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Paper Order Slip for Headcount */}
-            <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 shadow-brutal-md relative rotate-[-0.5deg]">
-              <div className="perforated-strip -mt-3 mb-3" />
-              <div className="flex items-center justify-between mb-2">
-                <div className="font-mono text-[10px] font-black uppercase text-[#5C554F] tracking-widest">
-                  KITCHEN PRODUCTION SLIP
-                </div>
-                {forecast?.isMlActive ? (
-                  <span className="font-mono text-[9px] bg-[#F28C1B]/20 text-[#14110F] border border-[#14110F]/30 px-2 py-0.5 rounded font-black uppercase">
-                    ML 10th–90th Range
-                  </span>
-                ) : (
-                  <span className="font-mono text-[9px] bg-[#FAF5E8] text-[#5C554F] border border-[#14110F]/20 px-2 py-0.5 rounded font-bold">
-                    Using baseline forecast
-                  </span>
-                )}
-              </div>
-
-              {forecast?.mlRange ? (
-                <div className="my-2 space-y-1">
-                  <div className="font-display text-4xl sm:text-5xl font-black text-[#F28C1B] leading-none">
-                    {forecast.mlRange.label}
-                  </div>
-                  <div className="font-mono text-xs text-[#5C554F] font-bold">
-                    Point Estimate: ~{forecast.expectedPlates} plates
-                  </div>
-                  <div className="font-mono text-[11px] text-[#78716C] border-b border-[#14110F]/15 pb-2">
-                    Baseline: {forecast.baselinePlates ?? forecast.historicalAvgPlates} plates (TypeScript fallback)
-                  </div>
-                </div>
-              ) : (
-                <div className="font-display text-5xl sm:text-6xl font-black text-[#F28C1B] leading-none my-2">
-                  {forecast?.expectedPlates ?? 495}
-                </div>
-              )}
-
-              <div className="font-display text-lg text-[#14110F] uppercase flex items-center justify-between mt-2">
-                <span>TARGET PLATES FOR {mealType}</span>
-                {forecast?.mlTopDrivers && forecast.mlTopDrivers.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowDrivers(!showDrivers)}
-                    className="font-mono text-xs lowercase text-[#5C554F] hover:text-[#F28C1B] underline font-bold"
-                  >
-                    {showDrivers ? 'hide why' : 'why?'}
-                  </button>
-                )}
-              </div>
-
-              {/* Drivers Popover / Panel */}
-              {showDrivers && forecast?.mlTopDrivers && (
-                <div className="mt-3 p-3 bg-[#14110F] text-[#FAF5E8] rounded-xl border border-[#14110F] space-y-2 font-mono text-xs">
-                  <div className="flex items-center justify-between text-[10px] text-[#A39B8F] uppercase tracking-wider font-bold">
-                    <span>Top Model Drivers</span>
-                    <span>Importance</span>
-                  </div>
-                  {forecast.mlTopDrivers.slice(0, 3).map((driver, idx) => (
-                    <div key={idx} className="space-y-0.5">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span>• {driver.label}</span>
-                        <span className="text-[#F28C1B] font-bold">{driver.weight}</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#F28C1B]"
-                          style={{
-                            width: `${Math.min(100, Math.max(15, (driver.weight / (forecast.mlTopDrivers?.[0]?.weight || 500)) * 100))}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-4 pt-3 border-t-2 border-dashed border-[#14110F] flex items-center justify-between font-mono text-xs">
-                <span>PRE-BOOKED: {forecast?.bookedPlates ?? 185}</span>
-                <span className="font-bold text-[#2F6B3A]">
-                  {forecast?.adoptionPct ?? 38}% ADOPTION
-                </span>
-              </div>
-            </div>
-
-            {/* Kitchen-Scale Dial for Confidence */}
-            <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 shadow-brutal-md flex flex-col items-center justify-center">
-              <span className="font-mono text-[10px] font-black uppercase tracking-widest text-[#5C554F] mb-1">
-                KITCHEN SCALE CONFIDENCE
-              </span>
-              <KitchenScaleDial
-                score={confidenceScore}
-                label={`${forecast?.confidenceLevel ?? 'Moderate'} Confidence`}
-                sublabel={forecast?.confidenceNote ?? 'Relying on 4-week weekday history.'}
-              />
-            </div>
-
-            {/* Production Modifiers */}
-            <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 shadow-brutal-md space-y-3">
-              <div className="flex items-center justify-between font-mono text-xs font-black uppercase text-[#14110F]">
-                <span className="flex items-center gap-1.5">
-                  <Sliders className="w-4 h-4 text-[#F28C1B]" />
-                  <span>PRODUCTION MODIFIERS</span>
-                </span>
-                {statusMessage && (
-                  <span className="text-[10px] text-[#2F6B3A] font-bold">SAVED!</span>
-                )}
-              </div>
-
-              {/* Safety buffer */}
-              <div>
-                <div className="flex justify-between text-xs font-mono font-bold mb-1">
-                  <span>SAFETY BUFFER:</span>
-                  <span className="text-[#F28C1B]">{safetyBufferPct}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="20"
-                  value={safetyBufferPct}
-                  onChange={(e) => setSafetyBufferPct(Number(e.target.value))}
-                  className="w-full accent-[#14110F] cursor-pointer"
-                />
-              </div>
-
-              {/* Event dropdown */}
-              <div>
-                <label className="text-xs font-mono font-bold block mb-1">CAMPUS EVENT:</label>
-                <select
-                  value={eventAdjustmentPct}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setEventAdjustmentPct(val);
-                    setEventTitle(val === -14 ? 'Exam Day' : val === 20 ? 'College Fest' : '');
-                  }}
-                  className="w-full bg-[#F4ECD8] border-2 border-[#14110F] rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-[#14110F] focus:outline-none"
-                >
-                  <option value={0}>Normal Day (0% adjustment)</option>
-                  <option value={-14}>Exam Day (-14% attendance)</option>
-                  <option value={20}>College Fest (+20% attendance)</option>
-                  <option value={-25}>Long Weekend (-25% attendance)</option>
-                </select>
-              </div>
-
-              <TactileButton
-                variant="saffron"
-                size="sm"
-                className="w-full text-xs font-mono"
-                onClick={handleSaveConfig}
-                disabled={savingConfig}
+          <div className="flex items-center gap-2 flex-wrap">
+            {(['Breakfast', 'Lunch', 'Snacks', 'Dinner'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  setMealType(m);
+                  playDhabaSound('press');
+                }}
+                className={`px-3 py-1.5 font-mono text-[14px] font-bold rounded-lg border-2 transition cursor-pointer ${
+                  mealType === m
+                    ? 'bg-ink text-bg border-ink'
+                    : 'bg-bg-raised text-ink border-ink hover:bg-ink/10'
+                }`}
               >
-                APPLY &amp; RECALCULATE
-              </TactileButton>
-            </div>
-          </div>
-
-          {/* UniQ Insights: Kitchen Batching & Waste Suggestions */}
-          <UniQInsightsPanel
-            target="KITCHEN"
-            messCode={messCode}
-            dateStr={dateStr}
-            mealType={mealType}
-            className="my-1"
-          />
-
-          {/* Wall Chalkboard Menu Board for Dishes */}
-          <div className="chalkboard-panel p-6 sm:p-8 space-y-6 relative overflow-hidden">
-            {/* Chalkboard Wooden Frame Top Badge */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-[#544E48] pb-4 gap-2">
-              <div>
-                <div className="font-mono text-xs text-[#F2B705] uppercase tracking-widest font-black">
-                  MENU-BOARD ENTRIES • WALL CHALKBOARD
-                </div>
-                <h2 className="font-display text-3xl sm:text-4xl text-[#FAF5E8] uppercase tracking-wider">
-                  TODAY&#39;S COOKING QUANTITIES
-                </h2>
-              </div>
-              <StampBadge text="RIGHT-SIZED" color="curry" />
-            </div>
-
-            {/* Chalkboard Dish Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {forecast?.dishes?.map((dish) => {
-                return (
-                  <div
-                    key={dish.menuItemId}
-                    className="p-5 border-2 border-[#544E48] rounded-xl bg-[#141817] relative flex flex-col justify-between shadow-inner"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-display text-2xl text-[#FAF5E8] uppercase tracking-wide">
-                            {dish.name}
-                          </h3>
-                          <div className="font-mono text-xs text-[#A39B8F] mt-0.5">
-                            Portion std: {Math.round(dish.avgConsumptionKg * 1000)}g / plate • Base: {Math.round(dish.baseKg)} kg
-                          </div>
-                        </div>
-
-                        {/* Recommended Quantity in Chalk with Animated Underline */}
-                        <div className="text-right shrink-0">
-                          <div
-                            className="font-display text-4xl text-[#F2B705] tracking-wider leading-none"
-                            style={{ textShadow: '0 0 2px rgba(242,183,5,0.4)' }}
-                          >
-                            {dish.suggestedCookKg} KG
-                          </div>
-                          {/* Animated Chalk Underline */}
-                          <div className="h-1 bg-[#F2B705] rounded-full w-full mt-1 animate-pulse" />
-                          <div className="font-mono text-[10px] text-[#A39B8F] mt-0.5">
-                            +{(dish.suggestedCookKg - dish.baseKg).toFixed(1)}kg buffer
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Feedback-loop note as a Sticky Note stuck on dish */}
-                    {dish.feedbackNote && (
-                      <div className="mt-4 pt-3 border-t border-dashed border-[#544E48] flex justify-end">
-                        <StickyNote
-                          text={dish.feedbackNote}
-                          subtext="Automated recipe feedback loop"
-                          color="yellow"
-                          rotate={-2}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                {m}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+      </header>
 
-      {/* 3. TAB 2: UNDER-30S WASTE LOGGER WITH STEEL WEIGHTS & VISIBLE FILLING BIN */}
-      {activeTab === 'waste' && (
+      {/* ── 2. TAB 1: FORECAST ── */}
+      {activeTab === 'forecast' && (
         <div className="space-y-6">
-          <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 sm:p-8 shadow-brutal-lg space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-[#14110F]/15 pb-4 gap-2">
-              <div>
-                <span className="font-mono text-[10px] font-black uppercase tracking-widest bg-[#2F6B3A] text-[#FAF5E8] px-2.5 py-0.5 rounded">
-                  UNDER 30-SECOND FLOW
+          {/* FORECAST HERO CARD */}
+          <section className="bg-bg-raised border-2 border-ink rounded-xl p-6 sm:p-8 space-y-5">
+            {/* Range & Tag row */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-baseline gap-3">
+                <span className="font-display text-4xl sm:text-5xl font-black text-ink tracking-tight leading-none">
+                  {rangeDisplay}
                 </span>
-                <h2 className="font-display text-3xl sm:text-4xl font-black text-[#14110F] uppercase tracking-wide mt-1">
-                  LOG UNTOUCHED LEFTOVERS &amp; PLATE RETURN
-                </h2>
-                <p className="font-serif text-xs text-[#5C554F]">
-                  Tap iron weight buttons per dish. Single gross scale reading for return bins.
-                </p>
+                <span className="px-2.5 py-1 border-2 border-ink rounded font-mono text-[14px] font-bold text-ink">
+                  {forecast?.isMlActive ? 'Using ML forecast' : 'Using baseline forecast'}
+                </span>
               </div>
 
-              {/* Graphic Filling Waste Bin */}
-              <FillingWasteBin currentKg={totalCombinedWaste} />
+              {forecast?.dataMode === 'demo' && (
+                <span className="px-2 py-0.5 border-2 border-ink rounded font-mono text-[14px] font-bold uppercase text-ink">
+                  Simulated data
+                </span>
+              )}
             </div>
 
-            {/* Dish-by-Dish Leftover Weights */}
-            <div className="space-y-4">
-              <label className="font-mono text-xs font-black uppercase text-[#14110F] block">
-                UNTOUCHED COOKED LEFTOVER (TAP WEIGHT TO RECORD)
-              </label>
+            {/* Point Estimate Smaller */}
+            <div className="font-mono text-[15px] text-ink-muted font-bold">
+              Point estimate: ~{expectedPlates} plates
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {forecast?.dishes?.map((dish) => {
-                  const currentVal = dishLeftovers[dish.menuItemId] || 0;
+            {/* Confidence Sentence */}
+            <p className="font-serif text-[16px] text-ink leading-relaxed">
+              {confidenceSentence}
+            </p>
+
+            {/* Simple 3-Segment Bar (Low / Medium / High) */}
+            <div className="space-y-1.5">
+              <div className="font-mono text-[14px] font-bold text-ink uppercase tracking-wide">
+                Confidence level
+              </div>
+              <div className="grid grid-cols-3 gap-2 max-w-sm">
+                {(['Low', 'Medium', 'High'] as const).map((level) => {
+                  const isCurrent =
+                    (level === 'Low' && (confidenceLevel === 'Low' || bookedCount === 0)) ||
+                    (level === 'Medium' && (confidenceLevel === 'Moderate' && bookedCount > 0)) ||
+                    (level === 'High' && confidenceLevel === 'High');
+
                   return (
                     <div
-                      key={dish.menuItemId}
-                      className="p-4 rounded-xl bg-[#FAF5E8] border-2 border-[#14110F] shadow-brutal-sm flex items-center justify-between gap-3"
+                      key={level}
+                      className={`py-2 px-3 border-2 border-ink rounded-lg text-center font-mono text-[14px] font-bold transition-colors ${
+                        isCurrent
+                          ? 'bg-ink text-bg'
+                          : 'bg-transparent text-ink-muted border-ink/40'
+                      }`}
                     >
-                      <div className="min-w-0">
-                        <div className="font-display text-lg font-bold text-[#14110F] truncate uppercase">
-                          {dish.name}
-                        </div>
-                        <div className="font-mono text-sm font-black text-[#D7312B]">
-                          {currentVal} KG LEFTOVER
-                        </div>
-                      </div>
-
-                      {/* Tactile Steel Weight Buttons (1, 2, 5, 10 kg) */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {[1, 2, 5, 10].map((kg) => (
-                          <SteelWeightButton
-                            key={kg}
-                            kg={kg}
-                            isSelected={currentVal === kg}
-                            onClick={() => setDishKg(dish.menuItemId, kg)}
-                          />
-                        ))}
-                      </div>
+                      {level}
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* Plate Return Waste Single Scale Input */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-4 border-t-2 border-[#14110F]/15">
+            {/* Two Stats at Full Contrast */}
+            <div className="flex flex-wrap items-center gap-6 pt-4 border-t-2 border-ink/20 font-mono text-[14px] font-bold text-ink">
               <div>
-                <label className="font-mono text-xs font-black uppercase text-[#14110F] block mb-1">
-                  PLATE RETURN BIN TOTAL (KG)
-                </label>
-                <input
-                  type="number"
-                  value={plateWasteTotalKg}
-                  onChange={(e) => setPlateWasteTotalKg(Number(e.target.value))}
-                  placeholder="e.g. 28"
-                  className="w-full bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-xl px-4 py-2.5 text-2xl font-mono font-black text-[#14110F] focus:outline-none focus:ring-2 focus:ring-[#F28C1B]"
-                />
+                Pre-booked: {bookedCount} ({adoptionPct}%)
               </div>
-
               <div>
-                <label className="font-mono text-xs font-black uppercase text-[#14110F] block mb-1">
-                  ACTUAL PLATES SERVED (HEADCOUNT)
-                </label>
-                <input
-                  type="number"
-                  value={actualPlates}
-                  onChange={(e) => setActualPlates(Number(e.target.value))}
-                  placeholder="e.g. 495"
-                  className="w-full bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-xl px-4 py-2.5 text-2xl font-mono font-black text-[#14110F] focus:outline-none focus:ring-2 focus:ring-[#F28C1B]"
-                />
+                4-week average: {forecast?.historicalAvgPlates ?? (mealType === 'Snacks' ? 320 : 505)}
               </div>
             </div>
 
-            {/* Surplus Alert Notice if untouched food > 10kg */}
-            {surplusNotice && (
-              <div className="p-4 rounded-xl bg-[#2F6B3A]/15 border-2 border-[#2F6B3A] text-[#14110F] space-y-2">
-                <div className="flex items-center gap-2 text-[#2F6B3A] font-display text-lg uppercase font-bold">
-                  <HeartHandshake className="w-5 h-5" />
-                  <span>SURPLUS FOOD NOTICE: {surplusNotice.kg} KG SAFE FOOD</span>
-                </div>
-                <p className="font-serif text-xs">{surplusNotice.message}</p>
+            {/* Baseline and Plan-share note under forecast */}
+            <div className="flex flex-wrap items-center gap-3 pt-2 font-mono text-[14px] text-ink-muted">
+              <div>
+                Baseline:{' '}
+                {forecast?.baselinePlates ??
+                  forecast?.historicalAvgPlates ??
+                  (mealType === 'Snacks' ? 320 : 505)}{' '}
+                plates
+              </div>
+              <span>•</span>
+              <div>
+                {forecast?.planSplitLabel ||
+                  `${mealType}: 62% of students on a plan with ${mealType.toLowerCase()} (assumption)`}
+              </div>
+            </div>
+          </section>
+
+          {/* ── 3. COLLAPSED "ADJUST FORECAST" PANEL (Single Saffron Action) ── */}
+          <section className="bg-bg-raised border-2 border-ink rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setAdjustOpen(!adjustOpen)}
+              className="flex items-center justify-between w-full p-4 font-mono text-[14px] font-bold text-ink hover:bg-ink/5 transition cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-ink" />
+                <span>Adjust forecast</span>
+              </span>
+              <ChevronDown
+                className={`w-5 h-5 transition-transform ${adjustOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {adjustOpen && (
+              <div className="p-6 border-t-2 border-ink space-y-6">
                 <div>
-                  <label className="font-mono text-[10px] font-bold block mb-1">
-                    DISPATCH RECIPIENT / NGO:
-                  </label>
+                  <div className="flex justify-between items-center mb-2 font-mono text-[14px] font-bold text-ink">
+                    <label htmlFor="safety-buffer-input">
+                      Safety buffer: {safetyBufferPct}%
+                    </label>
+                  </div>
                   <input
-                    type="text"
-                    value={ngoContactInput}
-                    onChange={(e) => setNgoContactInput(e.target.value)}
-                    className="w-full bg-[#FAF5E8] border-2 border-[#14110F] rounded-lg px-3 py-1.5 font-mono text-xs text-[#14110F]"
+                    id="safety-buffer-input"
+                    type="range"
+                    min="0"
+                    max="20"
+                    value={safetyBufferPct}
+                    onChange={(e) => setSafetyBufferPct(Number(e.target.value))}
+                    className="w-full accent-saffron cursor-pointer"
                   />
                 </div>
+
+                <div>
+                  <label
+                    htmlFor="campus-event-input"
+                    className="block font-mono text-[14px] font-bold text-ink mb-2"
+                  >
+                    Campus event
+                  </label>
+                  <select
+                    id="campus-event-input"
+                    value={eventAdjustmentPct}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setEventAdjustmentPct(val);
+                      setEventTitle(
+                        val === -14
+                          ? 'Exam Day'
+                          : val === 20
+                          ? 'College Fest'
+                          : val === -25
+                          ? 'Long Weekend'
+                          : ''
+                      );
+                    }}
+                    className="w-full bg-bg border-2 border-ink rounded-lg px-3 py-2 font-mono text-[14px] font-bold text-ink focus:outline-none cursor-pointer"
+                  >
+                    <option value={0}>Normal Day (0% adjustment)</option>
+                    <option value={-14}>Exam Day (-14% attendance)</option>
+                    <option value={20}>College Fest (+20% attendance)</option>
+                    <option value={-25}>Long Weekend (-25% attendance)</option>
+                  </select>
+                </div>
+
+                {/* THE ONLY SAFFRON BUTTON ON THE SCREEN */}
+                <button
+                  type="button"
+                  onClick={handleSaveConfig}
+                  disabled={savingConfig}
+                  className="w-full py-3 px-4 bg-saffron text-ink border-2 border-ink rounded-lg font-mono text-[14px] font-bold uppercase hover:bg-saffron/90 transition cursor-pointer"
+                >
+                  {savingConfig ? 'Applying...' : 'Apply adjustment'}
+                </button>
+
+                {statusMessage && (
+                  <div className="font-mono text-[14px] font-bold text-ink text-center">
+                    {statusMessage}
+                  </div>
+                )}
               </div>
             )}
+          </section>
 
-            {/* Success message */}
-            {wasteSuccessMsg && (
-              <div className="p-3.5 rounded-xl bg-[#2F6B3A]/15 border-2 border-[#2F6B3A] text-[#2F6B3A] font-mono text-xs font-bold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{wasteSuccessMsg}</span>
-              </div>
-            )}
+          {/* ── 4. COOKING QUANTITIES (Clean List, One Dish Per Row) ── */}
+          <section className="bg-bg-raised border-2 border-ink rounded-xl p-6 sm:p-8 space-y-4">
+            <div className="flex items-center justify-between border-b-2 border-ink/20 pb-4">
+              <h2 className="font-display text-2xl sm:text-3xl font-black text-ink uppercase tracking-wide">
+                Cooking quantities
+              </h2>
+              <span className="font-mono text-[14px] font-bold text-ink">
+                {forecast?.dishes?.length ?? 0} dishes
+              </span>
+            </div>
 
-            <TactileButton
-              variant="saffron"
-              size="lg"
-              className="w-full text-xl py-4 shadow-brutal-lg"
-              onClick={handleSubmitWaste}
-            >
-              SUBMIT 30-SEC WASTE LOG
-            </TactileButton>
-          </div>
+            <div className="divide-y-2 divide-ink/15">
+              {forecast?.dishes?.map((dish) => {
+                const isOverridden = dishOverrides[dish.menuItemId] !== undefined;
+                const displayKg = isOverridden
+                  ? dishOverrides[dish.menuItemId]
+                  : dish.suggestedCookKg;
+                const minKg = Math.round(dish.baseKg);
+                const maxKg = Math.round(dish.suggestedCookKg);
+                const rangeKg = `${minKg}–${maxKg} kg`;
+                const isExpanded = expandedOverrides[dish.menuItemId];
+                const wastePct = dish.reductionPct > 0 ? dish.reductionPct : 6;
+                const realStatus =
+                  dish.reductionPct > 0
+                    ? `Waste ${wastePct}%, reduction applied`
+                    : `Waste ${wastePct}%, on target`;
+
+                return (
+                  <div key={dish.menuItemId} className="py-4 space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      {/* Left: Dish name, portion std & real status */}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="font-display text-xl sm:text-2xl font-bold text-ink uppercase">
+                            {dish.name}
+                          </span>
+                          <span className="px-2 py-0.5 border-2 border-ink rounded font-mono text-[14px] font-bold text-ink">
+                            Waste {wastePct}%
+                          </span>
+                          <span className="font-mono text-[14px] font-medium text-ink-muted">
+                            {realStatus}
+                          </span>
+                        </div>
+                        <div className="font-mono text-[14px] text-ink-muted">
+                          Portion: {Math.round(dish.avgConsumptionKg * 1000)}g / plate • Base:{' '}
+                          {Math.round(dish.baseKg)} kg
+                        </div>
+                      </div>
+
+                      {/* Right: Suggested quantity range & Override link */}
+                      <div className="flex items-center gap-4 sm:text-right shrink-0">
+                        <div>
+                          <div className="font-mono text-[18px] sm:text-[20px] font-black text-ink">
+                            {displayKg} kg
+                          </div>
+                          <div className="font-mono text-[14px] text-ink-muted">
+                            Suggested: {rangeKg}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleOverride(dish.menuItemId)}
+                          className="font-mono text-[14px] font-bold text-ink underline cursor-pointer hover:text-ink-muted"
+                        >
+                          {isExpanded ? 'Done' : 'Override'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Expanded Override Input */}
+                    {isExpanded && (
+                      <div className="p-4 border-2 border-ink rounded-lg bg-bg flex items-center gap-3 font-mono text-[14px]">
+                        <label
+                          htmlFor={`override-${dish.menuItemId}`}
+                          className="font-bold text-ink"
+                        >
+                          Override quantity:
+                        </label>
+                        <input
+                          id={`override-${dish.menuItemId}`}
+                          type="number"
+                          min="1"
+                          max="500"
+                          value={dishOverrides[dish.menuItemId] ?? dish.suggestedCookKg}
+                          onChange={(e) =>
+                            handleOverrideChange(dish.menuItemId, Number(e.target.value))
+                          }
+                          className="w-24 px-3 py-1 bg-bg-raised border-2 border-ink rounded font-bold text-ink focus:outline-none"
+                        />
+                        <span className="text-ink-muted">kg</span>
+                        {isOverridden && (
+                          <button
+                            type="button"
+                            onClick={() => resetOverride(dish.menuItemId)}
+                            className="text-ink-muted underline hover:text-ink text-[14px] ml-2"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Feedback-loop note: inline note under dish */}
+                    {dish.feedbackNote && (
+                      <div className="font-mono text-[14px] text-ink-muted">
+                        ↳ Note: {dish.feedbackNote}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         </div>
       )}
 
-      {/* 4. TAB 3: REPORTS & CSV EXPORT */}
-      {activeTab === 'reports' && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* ── 5. TAB 2: WASTE LOG ── */}
+      {activeTab === 'waste' && (
+        <section className="bg-bg-raised border-2 border-ink rounded-xl p-6 sm:p-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-ink/20 pb-4 gap-4">
             <div>
-              <h2 className="font-display text-3xl font-black uppercase text-[#14110F]">
-                EMPIRICAL WASTE &amp; ATTENDANCE LOG
+              <div className="font-mono text-[14px] font-bold uppercase tracking-wider text-ink-muted">
+                Waste logger
+              </div>
+              <h2 className="font-display text-3xl sm:text-4xl font-black text-ink uppercase tracking-wide mt-1">
+                Log leftovers &amp; plate return
               </h2>
-              <p className="font-serif text-xs text-[#5C554F]">
-                4-week historical records and dish-specific wastage percentage rankings.
+              <p className="font-serif text-[15px] text-ink-muted">
+                Tap weight buttons per dish. Single reading for return bins.
               </p>
             </div>
 
-            <a
-              href={`/api/waste/export?messCode=${messCode}`}
-              download
-              className="dhaba-btn px-4 py-2 bg-[#14110F] text-[#FAF5E8] hover:bg-[#2A2521] text-xs font-mono font-bold flex items-center gap-2 shrink-0"
-            >
-              <Download className="w-4 h-4 text-[#F28C1B]" />
-              <span>EXPORT CSV REPORT</span>
-            </a>
+            <FillingWasteBin currentKg={totalCombinedWaste} />
           </div>
 
-          {/* Attendance Chart */}
-          <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 shadow-brutal-md">
-            <h3 className="font-display text-xl uppercase font-bold text-[#14110F] mb-1">
-              PREDICTED VS ACTUAL ATTENDANCE (LAST 7 DAYS)
-            </h3>
-            <AttendanceChart data={reportsData?.predictedVsActual} />
-          </div>
+          {/* Dish-by-Dish Leftover Weights */}
+          <div className="space-y-4">
+            <label className="font-mono text-[14px] font-bold uppercase text-ink block">
+              Untouched cooked leftover (tap weight to record)
+            </label>
 
-          {/* Ranking of Most Wasted Dishes */}
-          <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 shadow-brutal-md space-y-3">
-            <div className="flex items-center justify-between border-b-2 border-[#14110F]/15 pb-2">
-              <span className="font-display text-xl uppercase font-bold text-[#14110F]">
-                DISHES STUDENTS WASTE MOST (EMPIRICAL RANKING)
-              </span>
-              <span className="font-mono text-xs text-[#5C554F]">
-                WASTE % OF PREPARED
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              {reportsData?.ranking?.map((item: any, idx: number) => {
-                const isHigh = item.wastePct > 12;
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {forecast?.dishes?.map((dish) => {
+                const currentVal = dishLeftovers[dish.menuItemId] || 0;
                 return (
                   <div
-                    key={item.dishName}
-                    className="p-3 rounded-xl bg-[#F4ECD8] border-2 border-[#14110F] flex items-center justify-between gap-3 text-xs font-mono font-bold"
+                    key={dish.menuItemId}
+                    className="p-4 rounded-xl bg-bg border-2 border-ink flex items-center justify-between gap-3"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="w-5 text-[#5C554F]">#{idx + 1}</span>
-                      <span className="text-[#14110F] uppercase">{item.dishName}</span>
+                    <div className="min-w-0">
+                      <div className="font-display text-lg font-bold text-ink truncate uppercase">
+                        {dish.name}
+                      </div>
+                      <div className="font-mono text-[14px] font-bold text-ink">
+                        {currentVal} kg leftover
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="w-28 sm:w-44 bg-[#E8DFC7] h-3 border border-[#14110F] rounded overflow-hidden">
-                        <div
-                          className={`h-full ${
-                            isHigh ? 'bg-[#D7312B]' : 'bg-[#F28C1B]'
-                          }`}
-                          style={{ width: `${Math.min(100, item.wastePct * 3.5)}%` }}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {[1, 2, 5, 10].map((kg) => (
+                        <SteelWeightButton
+                          key={kg}
+                          kg={kg}
+                          isSelected={currentVal === kg}
+                          onClick={() => setDishKg(dish.menuItemId, kg)}
                         />
-                      </div>
-                      <span
-                        className={`min-w-[48px] text-right ${
-                          isHigh ? 'text-[#D7312B]' : 'text-[#14110F]'
-                        }`}
-                      >
-                        {item.wastePct}%
-                      </span>
+                      ))}
                     </div>
                   </div>
                 );
               })}
             </div>
           </div>
+
+          {/* Plate Return Waste Single Scale Input */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-4 border-t-2 border-ink/20">
+            <div>
+              <label className="font-mono text-[14px] font-bold uppercase text-ink block mb-2">
+                Plate return bin total (kg)
+              </label>
+              <input
+                type="number"
+                value={plateWasteTotalKg}
+                onChange={(e) => setPlateWasteTotalKg(Number(e.target.value))}
+                placeholder="e.g. 28"
+                className="w-full bg-bg border-2 border-ink rounded-lg px-4 py-2.5 text-xl font-mono font-bold text-ink focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="font-mono text-[14px] font-bold uppercase text-ink block mb-2">
+                Actual plates served (headcount)
+              </label>
+              <input
+                type="number"
+                value={actualPlates}
+                onChange={(e) => setActualPlates(Number(e.target.value))}
+                placeholder="e.g. 495"
+                className="w-full bg-bg border-2 border-ink rounded-lg px-4 py-2.5 text-xl font-mono font-bold text-ink focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Surplus Alert Notice */}
+          {surplusNotice && (
+            <div className="p-4 rounded-xl border-2 border-ink bg-bg text-ink space-y-2">
+              <div className="flex items-center gap-2 font-display text-lg uppercase font-bold text-ink">
+                <HeartHandshake className="w-5 h-5 text-curry-leaf" />
+                <span>Surplus food notice: {surplusNotice.kg} kg safe food</span>
+              </div>
+              <p className="font-serif text-[15px]">{surplusNotice.message}</p>
+              <div>
+                <label className="font-mono text-[14px] font-bold block mb-1">
+                  Dispatch recipient / NGO:
+                </label>
+                <input
+                  type="text"
+                  value={ngoContactInput}
+                  onChange={(e) => setNgoContactInput(e.target.value)}
+                  className="w-full bg-bg-raised border-2 border-ink rounded-lg px-3 py-1.5 font-mono text-[14px] text-ink"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Success message */}
+          {wasteSuccessMsg && (
+            <div className="p-3.5 rounded-xl border-2 border-ink bg-bg text-ink font-mono text-[14px] font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-curry-leaf shrink-0" />
+              <span>{wasteSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* Submit button is neutral ink style so Apply remains single saffron action */}
+          <button
+            type="button"
+            className="w-full min-h-[48px] py-3.5 px-4 bg-ink text-bg border-2 border-ink rounded-lg font-mono text-[14px] font-bold uppercase hover:bg-ink/90 transition cursor-pointer flex items-center justify-center"
+            onClick={handleSubmitWaste}
+          >
+            Submit waste log
+          </button>
+        </section>
+      )}
+
+      {/* ── 6. TAB 3: REPORTS & CSV EXPORT ── */}
+      {activeTab === 'reports' && (
+        <div className="space-y-6">
+          <section className="bg-bg-raised border-2 border-ink rounded-xl p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-ink/20">
+              <div>
+                <h2 className="font-display text-2xl sm:text-3xl font-black uppercase text-ink">
+                  Waste &amp; attendance history
+                </h2>
+                <p className="font-serif text-[15px] text-ink-muted">
+                  4-week historical records and dish-specific wastage percentage rankings.
+                </p>
+              </div>
+
+              <a
+                href={`/api/waste/export?messCode=${messCode}`}
+                download
+                className="px-4 py-2.5 bg-ink text-bg border-2 border-ink rounded-lg text-[14px] font-mono font-bold flex items-center gap-2 shrink-0 hover:bg-ink/90 transition"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export CSV report</span>
+              </a>
+            </div>
+
+            {/* Attendance Chart */}
+            <div className="space-y-2">
+              <h3 className="font-display text-xl uppercase font-bold text-ink">
+                Predicted vs actual attendance (last 7 days)
+              </h3>
+              <AttendanceChart data={reportsData?.predictedVsActual} />
+            </div>
+
+            {/* Ranking of Most Wasted Dishes */}
+            <div className="space-y-3 pt-4 border-t-2 border-ink/20">
+              <div className="flex items-center justify-between">
+                <span className="font-display text-xl uppercase font-bold text-ink">
+                  Wasted dishes ranking
+                </span>
+                <span className="font-mono text-[14px] text-ink-muted">
+                  Waste % of prepared
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {reportsData?.ranking?.map((item: any, idx: number) => {
+                  const isHigh = item.wastePct > 12;
+                  return (
+                    <div
+                      key={item.dishName}
+                      className="p-3 rounded-lg bg-bg border-2 border-ink flex items-center justify-between gap-3 text-[14px] font-mono font-bold"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 text-ink-muted">#{idx + 1}</span>
+                        <span className="text-ink uppercase">{item.dishName}</span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="w-28 sm:w-44 bg-bg-raised h-3 border border-ink rounded overflow-hidden">
+                          <div
+                            className={`h-full ${
+                              isHigh ? 'bg-chilli' : 'bg-curry-leaf'
+                            }`}
+                            style={{ width: `${Math.min(100, item.wastePct * 3.5)}%` }}
+                          />
+                        </div>
+                        <span
+                          className={`min-w-[48px] text-right ${
+                            isHigh ? 'text-chilli' : 'text-ink'
+                          }`}
+                        >
+                          {item.wastePct}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
         </div>
       )}
 
-      {/* 4. TAB 4: COMPARE MESSES (19 MESSES PLATFORM TABLE) */}
+      {/* ── 7. TAB 4: COMPARE MESSES ── */}
       {activeTab === 'compare' && <CompareMessesTable />}
     </div>
   );

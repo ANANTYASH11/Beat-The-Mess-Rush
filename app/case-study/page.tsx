@@ -104,7 +104,7 @@ export default function CaseStudyPage() {
             href={university.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="dhaba-btn px-4 py-2.5 bg-[#FAF5E8] text-[#14110F] hover:bg-[#EAE1CA] text-xs font-mono font-bold flex items-center gap-2"
+            className="dhaba-btn px-4 py-2.5 min-h-[48px] bg-[#FAF5E8] text-[#14110F] hover:bg-[#EAE1CA] text-[14px] font-mono font-bold flex items-center gap-2"
           >
             <Github className="w-4 h-4" />
             <span>VIEW SOURCE ON GITHUB</span>
@@ -116,7 +116,7 @@ export default function CaseStudyPage() {
       {/* WHY UNIQ? Callout Card */}
       <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 sm:p-7 shadow-brutal-md space-y-2">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-black uppercase tracking-widest bg-saffron text-ink px-2.5 py-0.5 rounded">
+          <span className="font-mono text-[14px] font-black uppercase tracking-widest bg-saffron text-ink px-3 py-1 rounded">
             BRAND IDENTITY
           </span>
           <h3 className="font-display text-2xl font-black uppercase text-[#14110F]">

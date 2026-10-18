@@ -17,11 +17,11 @@ export function TactileButton({
   ...props
 }: TactileButtonProps) {
   const base =
-    'inline-flex items-center justify-center font-mono font-bold uppercase tracking-wider border-2 border-ink transition-all active:translate-x-[2px] active:translate-y-[2px] disabled:opacity-50 disabled:pointer-events-none select-none';
+    'inline-flex items-center justify-center min-h-[48px] font-mono font-bold uppercase tracking-wider border-2 border-ink transition-all active:translate-x-[2px] active:translate-y-[2px] disabled:opacity-50 disabled:pointer-events-none select-none';
 
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-xs shadow-offset-sm',
-    md: 'px-5 py-2.5 text-sm shadow-offset-md hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-offset-sm',
+    sm: 'px-3 py-1.5 text-[14px] shadow-offset-sm',
+    md: 'px-5 py-2.5 text-[14px] shadow-offset-md hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-offset-sm',
     lg: 'px-7 py-3.5 text-base shadow-offset-lg hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-offset-md',
   };
 

@@ -1,16 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+import { university } from '@/config/university';
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const messCode = searchParams.get('messCode') || 'mess-1';
+  const messCode = searchParams.get('messCode') || searchParams.get('messId');
+
+  if (!messCode) {
+    return new NextResponse('messCode parameter is required', { status: 400 });
+  }
+
+  const validMess = university.messes.find(
+    (m) => m.id === messCode || m.name.toLowerCase() === messCode.toLowerCase()
+  );
+  if (!validMess) {
+    return new NextResponse(`Invalid messCode: ${messCode}`, { status: 404 });
+  }
 
   try {
     const mess = await prisma.mess.findFirst({
-      where: { code: messCode },
+      where: { code: validMess.id },
     });
     if (!mess) {
-      return new NextResponse('Mess not found', { status: 404 });
+      return new NextResponse('Mess not found in database', { status: 404 });
     }
 
     const forecasts = await prisma.forecast.findMany({

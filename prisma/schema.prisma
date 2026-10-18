@@ -209,3 +209,180 @@ model SuggestionFeedback {
 
   @@index([universityId, target, action])
 }
+
+// ==============================================================================
+// FEATURE 1: CLASS-TIMETABLE ARRIVAL PREDICTION
+// ==============================================================================
+
+model Block {
+  id                String           @id @default(cuid())
+  universityId      String           @default("lpu")
+  name              String           // e.g. "Block 32", "Block 34", "Block 38"
+  walkingMinutes    String           @default("{}") // JSON map: { [messId]: minutes }
+  shareDistribution String           @default("{}") // JSON map: { [messId]: share_pct (0-1) }
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  timetableEntries  TimetableEntry[]
+
+  @@unique([universityId, name])
+  @@index([universityId])
+}
+
+model TimetableEntry {
+  id                     String    @id @default(cuid())
+  universityId           String    @default("lpu")
+  blockId                String
+  block                  Block     @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  dayOfWeek              String    // Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
+  classEndTime           String    // HH:mm (24-hr format e.g. "12:50")
+  studentsCount          Int       // Aggregate count only (no student IDs)
+  buildingToMessMinutes  Int       @default(8)
+  version                Int       @default(1)
+  validFrom              String?   // YYYY-MM-DD
+  validTo                String?   // YYYY-MM-DD
+  createdAt              DateTime  @default(now())
+
+  @@index([universityId, dayOfWeek, classEndTime])
+  @@index([blockId])
+}
+
+model TimetableImportHistory {
+  id           String   @id @default(cuid())
+  universityId String   @default("lpu")
+  version      Int
+  filename     String
+  rowsCount    Int
+  status       String   @default("ACTIVE") // ACTIVE, REVERTED
+  importedAt   DateTime @default(now())
+
+  @@index([universityId, version])
+}
+
+// ==============================================================================
+// FEATURE 2: WEEKLY MENU VOTING
+// ==============================================================================
+
+model Ballot {
+  id                String                @id @default(cuid())
+  universityId      String                @default("lpu")
+  messId            String                // Eligibility is per mess
+  title             String                // e.g. "Week 43 Menu Vote (Oct 20-26)"
+  weekStart         String                // YYYY-MM-DD
+  weekEnd           String                // YYYY-MM-DD
+  openAt            DateTime
+  closeAt           DateTime
+  status            String                @default("DRAFT") // DRAFT, OPEN, CLOSED, VOIDED
+  minVotesRequired  Int                   @default(20)
+  committeeApproved Boolean               @default(false)
+  finalMenuNotes    String?               // Committee notes: "Advisory, final menu set by mess committee"
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  slots             BallotSlot[]
+  votes             BallotVote[]
+  participations    BallotParticipation[]
+
+  @@index([universityId, messId, status])
+}
+
+model BallotSlot {
+  id              String       @id @default(cuid())
+  ballotId        String
+  ballot          Ballot       @relation(fields: [ballotId], references: [id], onDelete: Cascade)
+  dayOfWeek       String       // e.g. "Wednesday"
+  mealType        String       // "Dinner", "Breakfast"
+  candidateDishes String       // JSON string array of dish names e.g. ["Paneer Butter Masala", "Rajma", "Dal Makhani"]
+  createdAt       DateTime     @default(now())
+  votes           BallotVote[]
+
+  @@index([ballotId])
+}
+
+// PRIVACY: Stored with NO roll number to ensure votes cannot be traced back
+model BallotVote {
+  id                    String      @id @default(cuid())
+  ballotId              String
+  ballot                Ballot      @relation(fields: [ballotId], references: [id], onDelete: Cascade)
+  slotId                String
+  slot                  BallotSlot  @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  dishName              String      // Candidate dish name or "none_of_these"
+  reasonChip            String?     // e.g. "too oily", "want more variety"
+  deviceFingerprintHash String?     // For anti-stuffing audit only
+  createdAt             DateTime    @default(now())
+
+  @@index([ballotId, slotId])
+  @@index([deviceFingerprintHash, createdAt])
+}
+
+// PRIVACY: Stores only hashed roll number to enforce 1 vote per slot without knowing choice
+model BallotParticipation {
+  id          String   @id @default(cuid())
+  ballotId    String
+  ballot      Ballot   @relation(fields: [ballotId], references: [id], onDelete: Cascade)
+  slotId      String
+  studentHash String   // SHA-256(rollNumber + salt)
+  createdAt   DateTime @default(now())
+
+  @@unique([ballotId, slotId, studentHash])
+  @@index([ballotId])
+}
+
+// ==============================================================================
+// FEATURE 3: ZERO WASTE WEEK CHALLENGE
+// ==============================================================================
+
+model ZeroWasteChallenge {
+  id                    String            @id @default(cuid())
+  universityId          String            @default("lpu")
+  title                 String            // e.g. "Campus Zero Waste Week - Autumn 2026"
+  startDate             String            // YYYY-MM-DD
+  endDate               String            // YYYY-MM-DD
+  status                String            @default("ACTIVE") // DRAFT, ACTIVE, COMPLETED
+  prizeText             String            // e.g. "Winning mess gets recognized on all entrance display screens"
+  divisions             String            // JSON array: ["Boys Hostel", "Girls Hostel", "Central", "Studio"]
+  isDemo                Boolean           @default(false)
+  publishedWinnerMessId String?
+  managerConfirmedAt    DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  scores                ZeroWasteScore[]
+  pledges               ZeroWastePledge[]
+
+  @@index([universityId, status])
+}
+
+model ZeroWasteScore {
+  id                          String             @id @default(cuid())
+  challengeId                 String
+  challenge                   ZeroWasteChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  messId                      String
+  division                    String             // "Boys Hostel", "Girls Hostel", etc.
+  baselineWastePerStudentGrams Float             // 4-week historical average baseline
+  currentWastePerStudentGrams  Float             // Current week measured average
+  improvementPct              Float              // Score = % improvement versus baseline
+  daysLogged                  Int                // Min 3 days to qualify
+  loggingCompletenessPct      Float              // Required >= 80% to qualify
+  satisfactionScorePct        Float              @default(85.0) // Satisfaction guard
+  complaintCount              Int                @default(0)
+  minServingGramsMet          Boolean            @default(true) // Anti-portion reduction guard
+  isFlagged                   Boolean            @default(false) // Flagged if satisfaction drops or underlogging
+  flagReason                  String?
+  badges                      String             @default("[]") // JSON string array of badges earned
+  platesSaved                 Int                @default(0)
+  kgSaved                     Float              @default(0.0)
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+
+  @@unique([challengeId, messId])
+  @@index([challengeId, division])
+}
+
+model ZeroWastePledge {
+  id          String             @id @default(cuid())
+  challengeId String
+  challenge   ZeroWasteChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  messId      String
+  createdAt   DateTime           @default(now())
+
+  @@index([challengeId, messId])
+}
+

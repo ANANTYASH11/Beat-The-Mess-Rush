@@ -118,50 +118,45 @@ export function CompareMessesTable() {
   };
 
   return (
-    <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-5 sm:p-7 shadow-brutal-lg space-y-5">
+    <div className="bg-bg-raised border-2 border-ink rounded-xl p-6 space-y-6">
       {/* ── HEADER ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b-2 border-[#14110F]/15">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b-2 border-ink/20">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] font-black uppercase tracking-wider bg-[#14110F] text-[#FAF5E8] px-2.5 py-0.5 rounded">
-              PLATFORM AUDIT VIEW
-            </span>
-            <span className="text-[10px] font-mono bg-saffron/20 border border-ink/40 text-ink px-2 py-0.5 rounded font-bold">
-              MESS COMMITTEE &amp; COUNCIL
-            </span>
+          <div className="font-mono text-[14px] font-bold uppercase tracking-wider text-ink-muted">
+            Cross-campus comparison
           </div>
-          <h2 className="font-display text-2xl sm:text-3xl font-black text-[#14110F] uppercase tracking-wide mt-1">
-            CROSS-CAMPUS MESS COMPARISON (19 MESSES)
+          <h2 className="font-display text-2xl sm:text-3xl font-black text-ink uppercase tracking-wide mt-1">
+            Mess comparison (19 messes)
           </h2>
-          <p className="font-serif italic text-xs text-[#5C554F]">
-            Sort and inspect live queues, wait forecasts, and plate wastage across all hostel clusters.
+          <p className="font-serif text-[15px] text-ink-muted">
+            Live queues, wait forecasts, and plate wastage across all hostel clusters.
           </p>
         </div>
 
         {/* Live Search */}
         <div className="relative w-full md:w-64">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5C554F]" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search mess name..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs font-mono bg-[#FAF5E8] border-2 border-[#14110F] rounded-lg text-[#14110F] focus:outline-none focus:ring-1 focus:ring-saffron"
+            className="w-full pl-9 pr-3 py-2 text-[14px] font-mono bg-bg border-2 border-ink rounded-lg text-ink focus:outline-none"
           />
         </div>
       </div>
 
       {/* ── CATEGORY PILLS ── */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-mono">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[14px] font-mono">
         {CATEGORY_TABS.map((tab) => (
           <button
             key={tab.key}
             type="button"
             onClick={() => setActiveCategory(tab.key)}
-            className={`px-3 py-1.5 rounded-lg border-2 font-bold whitespace-nowrap transition-all ${
+            className={`px-4 py-2.5 min-h-[48px] flex items-center justify-center rounded-lg border-2 font-bold whitespace-nowrap transition-all cursor-pointer ${
               activeCategory === tab.key
-                ? 'bg-[#14110F] text-[#FAF5E8] border-[#14110F] shadow-brutal-xs'
-                : 'bg-[#FAF5E8] text-[#5C554F] border-[#14110F]/40 hover:border-[#14110F]'
+                ? 'bg-ink text-bg border-ink'
+                : 'bg-bg text-ink border-ink hover:bg-ink/10'
             }`}
           >
             {tab.label}
@@ -170,61 +165,61 @@ export function CompareMessesTable() {
       </div>
 
       {/* ── SORTABLE TABLE ── */}
-      <div className="overflow-x-auto border-2 border-[#14110F] rounded-xl bg-[#FAF5E8]">
-        <table className="w-full text-left font-mono text-xs border-collapse">
+      <div className="overflow-x-auto border-2 border-ink rounded-xl bg-bg-raised">
+        <table className="w-full text-left font-mono text-[14px] border-collapse">
           <thead>
-            <tr className="bg-[#E8DFC7] border-b-2 border-[#14110F] text-[11px] font-black uppercase text-[#14110F]">
-              <th className="p-3 cursor-pointer select-none hover:bg-[#DDD2B5]" onClick={() => handleSort('name')}>
+            <tr className="bg-ink/10 border-b-2 border-ink text-[14px] font-bold uppercase text-ink">
+              <th className="p-3 cursor-pointer select-none hover:bg-ink/15" onClick={() => handleSort('name')}>
                 <div className="flex items-center gap-1">
                   <span>Mess Name</span>
                   {getSortIcon('name')}
                 </div>
               </th>
-              <th className="p-3 cursor-pointer select-none hover:bg-[#DDD2B5]" onClick={() => handleSort('category')}>
+              <th className="p-3 cursor-pointer select-none hover:bg-ink/15" onClick={() => handleSort('category')}>
                 <div className="flex items-center gap-1">
                   <span>Category</span>
                   {getSortIcon('category')}
                 </div>
               </th>
-              <th className="p-3 cursor-pointer select-none hover:bg-[#DDD2B5] text-right" onClick={() => handleSort('liveQueue')}>
+              <th className="p-3 cursor-pointer select-none hover:bg-ink/15 text-right" onClick={() => handleSort('liveQueue')}>
                 <div className="flex items-center justify-end gap-1">
                   <span>Queue Now</span>
                   {getSortIcon('liveQueue')}
                 </div>
               </th>
-              <th className="p-3 cursor-pointer select-none hover:bg-[#DDD2B5] text-right" onClick={() => handleSort('waitMax')}>
+              <th className="p-3 cursor-pointer select-none hover:bg-ink/15 text-right" onClick={() => handleSort('waitMax')}>
                 <div className="flex items-center justify-end gap-1">
                   <span>Est. Wait</span>
                   {getSortIcon('waitMax')}
                 </div>
               </th>
-              <th className="p-3 cursor-pointer select-none hover:bg-[#DDD2B5] text-right" onClick={() => handleSort('expectedPlates')}>
+              <th className="p-3 cursor-pointer select-none hover:bg-ink/15 text-right" onClick={() => handleSort('expectedPlates')}>
                 <div className="flex items-center justify-end gap-1">
-                  <span>Plates Expected</span>
+                  <span>Plates</span>
                   {getSortIcon('expectedPlates')}
                 </div>
               </th>
-              <th className="p-3 cursor-pointer select-none hover:bg-[#DDD2B5] text-right" onClick={() => handleSort('wastePct')}>
+              <th className="p-3 cursor-pointer select-none hover:bg-ink/15 text-right" onClick={() => handleSort('wastePct')}>
                 <div className="flex items-center justify-end gap-1">
                   <span>Waste %</span>
                   {getSortIcon('wastePct')}
                 </div>
               </th>
-              <th className="p-3 text-center">Data Health</th>
+              <th className="p-3 text-center">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#14110F]/15">
+          <tbody className="divide-y-2 divide-ink/15">
             {filteredAndSortedRows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-[#5C554F] italic">
+                <td colSpan={7} className="p-8 text-center text-ink-muted italic">
                   No messes found matching current category filter.
                 </td>
               </tr>
             ) : (
-              filteredAndSortedRows.map((r, i) => (
-                <tr key={r.id} className="hover:bg-[#EAE1CA] transition-colors">
+              filteredAndSortedRows.map((r) => (
+                <tr key={r.id} className="hover:bg-ink/5 transition-colors">
                   {/* Mess Name */}
-                  <td className="p-3 font-bold text-[#14110F]">
+                  <td className="p-3 font-bold text-ink">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-curry-leaf shrink-0" />
                       <span>{r.name}</span>
@@ -234,11 +229,11 @@ export function CompareMessesTable() {
                   {/* Category & Zone */}
                   <td className="p-3">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] uppercase font-bold bg-[#FAF5E8] border border-[#14110F]/30 px-1.5 py-0.5 rounded">
+                      <span className="text-[14px] uppercase font-bold bg-bg border border-ink/40 px-2 py-0.5 rounded text-ink">
                         {r.category.replace('_', ' ')}
                       </span>
                       {r.zone && (
-                        <span className="text-[9px] uppercase font-bold bg-saffron/20 border border-ink/30 px-1 py-0.2 rounded">
+                        <span className="text-[14px] uppercase font-bold border border-ink/30 px-1.5 py-0.5 rounded text-ink-muted">
                           {r.zone}
                         </span>
                       )}
@@ -246,14 +241,14 @@ export function CompareMessesTable() {
                   </td>
 
                   {/* Live Queue */}
-                  <td className="p-3 text-right font-black">
+                  <td className="p-3 text-right font-bold">
                     <span
-                      className={`px-2 py-0.5 rounded font-mono text-xs ${
+                      className={`px-2 py-0.5 rounded font-mono text-[14px] border ${
                         r.liveQueue > 25
-                          ? 'bg-[#D7312B]/15 text-[#D7312B] border border-[#D7312B]'
+                          ? 'border-chilli text-chilli bg-chilli/10'
                           : r.liveQueue > 14
-                          ? 'bg-[#F28C1B]/20 text-[#B25900] border border-[#F28C1B]'
-                          : 'bg-[#2F6B3A]/15 text-[#2F6B3A] border border-[#2F6B3A]'
+                          ? 'border-ink text-ink bg-ink/10'
+                          : 'border-curry-leaf text-curry-leaf bg-curry-leaf/10'
                       }`}
                     >
                       {r.liveQueue} in line
@@ -261,24 +256,24 @@ export function CompareMessesTable() {
                   </td>
 
                   {/* Est. Wait */}
-                  <td className="p-3 text-right font-bold text-[#14110F]">
-                    {r.waitMin}-{r.waitMax} min
+                  <td className="p-3 text-right font-bold text-ink">
+                    {r.waitMin}–{r.waitMax} min
                   </td>
 
                   {/* Plates Expected */}
-                  <td className="p-3 text-right font-mono font-bold text-[#14110F]">
+                  <td className="p-3 text-right font-mono font-bold text-ink">
                     {r.expectedPlates}
                   </td>
 
                   {/* Waste % */}
-                  <td className="p-3 text-right font-mono font-bold text-[#D7312B]">
-                    ~{r.wastePct}%
+                  <td className="p-3 text-right font-mono font-bold text-ink">
+                    {r.wastePct}%
                   </td>
 
-                  {/* Data Health */}
+                  {/* Status */}
                   <td className="p-3 text-center">
-                    <span className="text-[9px] font-mono uppercase bg-[#F28C1B]/15 text-[#14110F] border border-[#F28C1B] px-1.5 py-0.5 rounded font-bold">
-                      Unverified details
+                    <span className="text-[14px] font-mono uppercase border border-ink/40 px-2 py-0.5 rounded font-bold text-ink">
+                      Active
                     </span>
                   </td>
                 </tr>
@@ -289,9 +284,9 @@ export function CompareMessesTable() {
       </div>
 
       {/* ── FOOTER NOTE ── */}
-      <div className="flex items-center justify-between text-[11px] font-mono text-[#5C554F] pt-1">
+      <div className="flex items-center justify-between text-[14px] font-mono text-ink-muted pt-1">
         <span>Showing {filteredAndSortedRows.length} of {rows.length} messes</span>
-        <span className="italic">All live queue counts &amp; plate forecasts are marked SIMULATED until mess office verification</span>
+        <span>Simulated queue telemetry</span>
       </div>
     </div>
   );

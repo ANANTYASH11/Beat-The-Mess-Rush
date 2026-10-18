@@ -1,0 +1,35 @@
+{
+  "flow1_book_in_3_taps": {
+    "status": "PASS",
+    "details": "Completed 3-tap booking for slot 19:30. Token pass verified.",
+    "screenshot": "c:\\Mess Rush App\\screenshots\\e2e_flows\\flow1_booking_token.png"
+  },
+  "flow2_switch_mess": {
+    "status": "PASS",
+    "details": "Mess switch confirmed: CENTRAL NORTH -> CENTRAL SOUTH. All slots & queue data re-fetched.",
+    "screenshot": "c:\\Mess Rush App\\screenshots\\e2e_flows\\flow2_mess_switch.png"
+  },
+  "flow3_staff_walkin_served": {
+    "status": "PASS",
+    "details": "+1 Walk-in and Served & Exit actions executed with live tactile sounds and state updates.",
+    "screenshot": "c:\\Mess Rush App\\screenshots\\e2e_flows\\flow3_staff_actions.png"
+  },
+  "flow4_kitchen_waste_log": {
+    "status": "PASS",
+    "details": "Leftover dish weight recorded, plate return logged, and waste record persisted.",
+    "screenshot": "c:\\Mess Rush App\\screenshots\\e2e_flows\\flow4_kitchen_waste.png"
+  },
+  "flow5_offline_reconnect": {
+    "status": "PASS",
+    "details": "Offline action safely enqueued in IndexedDB/offline queue and synced cleanly upon reconnect.",
+    "screenshots": [
+      "c:\\Mess Rush App\\screenshots\\e2e_flows\\flow5_offline.png",
+      "c:\\Mess Rush App\\screenshots\\e2e_flows\\flow5_reconnected.png"
+    ]
+  },
+  "flow6_reload_midflow": {
+    "status": "PASS",
+    "details": "Page recovered gracefully after reload mid-flow without blank screen or uncaught exception.",
+    "screenshot": "c:\\Mess Rush App\\screenshots\\e2e_flows\\flow6_reload_midflow.png"
+  }
+}

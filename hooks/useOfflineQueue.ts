@@ -8,6 +8,7 @@ export interface OfflineAction {
   payload: Record<string, unknown>;
   timestamp: string;
   retryCount: number;
+  messId?: string;
 }
 
 const OFFLINE_STORAGE_KEY = 'mess_rush_offline_queue_v2';
@@ -51,18 +52,27 @@ export function useOfflineQueue(onActionSynced?: () => void) {
     }
   };
 
-  const enqueueAction = useCallback((endpoint: string, payload: Record<string, unknown>) => {
-    const item: OfflineAction = {
-      id: `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      endpoint,
-      payload,
-      timestamp: new Date().toISOString(),
-      retryCount: 0,
-    };
-    const updated = [...offlineQueue, item];
-    saveQueue(updated);
-    return item;
-  }, [offlineQueue]);
+  const enqueueAction = useCallback(
+    (endpoint: string, payload: Record<string, unknown>, explicitMessId?: string) => {
+      const messId =
+        explicitMessId ||
+        (payload.messCode ? String(payload.messCode) : undefined) ||
+        (payload.messId ? String(payload.messId) : undefined);
+
+      const item: OfflineAction = {
+        id: `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        endpoint,
+        payload,
+        timestamp: new Date().toISOString(),
+        retryCount: 0,
+        messId,
+      };
+      const updated = [...offlineQueue, item];
+      saveQueue(updated);
+      return item;
+    },
+    [offlineQueue]
+  );
 
   const flushQueue = useCallback(async () => {
     if (offlineQueue.length === 0) return 0;
@@ -108,9 +118,18 @@ export function useOfflineQueue(onActionSynced?: () => void) {
     return () => clearInterval(interval);
   }, [offlineQueue, flushQueue]);
 
+  const getPendingActionsForMess = useCallback(
+    (targetMessId: string) => {
+      return offlineQueue.filter((a) => a.messId === targetMessId);
+    },
+    [offlineQueue]
+  );
+
   return {
     isOnline,
     offlineCount: offlineQueue.length,
+    offlineQueue,
+    getPendingActionsForMess,
     enqueueAction,
     flushQueue,
   };

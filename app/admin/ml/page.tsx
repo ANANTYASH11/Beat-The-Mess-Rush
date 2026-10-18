@@ -455,6 +455,166 @@ export default function AdminMlPage() {
         </div>
       </div>
 
+      {/* 4.5 FEATURE SET PROMOTION & TIMETABLE IMPACT EVALUATION */}
+      <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 shadow-brutal-md space-y-5" id="timetable-feature-evaluation">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-[#14110F]/15 pb-3 gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] font-black uppercase bg-[#F28C1B] text-[#14110F] px-2 py-0.5 rounded border border-[#14110F]">
+                FEATURE SET COMPARISON &amp; PROMOTION
+              </span>
+              <span className="font-mono text-[11px] text-[#5C554F] font-bold">
+                14-Day Held-Out Window
+              </span>
+            </div>
+            <h2 className="font-display text-3xl font-black uppercase text-[#14110F] mt-1">
+              TIMETABLE &amp; VOTING FEATURE SET EVALUATION
+            </h2>
+            <p className="font-serif text-xs text-[#5C554F]">
+              Models are promoted to production only if the new feature set strictly beats the current live model on held-out test data.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs font-bold text-[#2F6B3A] bg-[#2F6B3A]/15 border-2 border-[#2F6B3A] px-3 py-1.5 rounded-xl">
+              Strict Gate: Promoted only if MAE improves
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Card 1: Attendance Model with Timetable Features */}
+          <div className="p-5 bg-white dark:bg-[#1E1A17] border-2 border-[#14110F] rounded-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-mono text-[10px] font-bold text-[#5C554F] uppercase block">
+                  Model: Attendance Forecaster (LightGBM)
+                </span>
+                <span className="font-display text-2xl font-black uppercase text-[#14110F] dark:text-[#FAF5E8]">
+                  With Timetable Features
+                </span>
+              </div>
+              <span className="px-2.5 py-1 rounded bg-[#2F6B3A] text-[#FAF5E8] font-mono text-xs font-black uppercase border border-[#14110F]">
+                PROMOTED
+              </span>
+            </div>
+
+            <div className="p-3.5 bg-[#2F6B3A]/10 border-2 border-[#2F6B3A] rounded-xl font-mono text-xs">
+              <div className="font-black text-[#2F6B3A] text-sm">
+                With timetable: MAE 14 vs 19, 26% better
+              </div>
+              <div className="text-[#5C554F] dark:text-[#A8A095] text-[11px] mt-1">
+                Candidate model with 4 timetable arrival features beat live model by 5 plates per meal slot on 14-day held-out period.
+              </div>
+            </div>
+
+            {/* Impact Metric */}
+            <div className="grid grid-cols-2 gap-3 font-mono text-xs">
+              <div className="p-3 bg-[#FAF5E8] dark:bg-[#221D18] border border-[#14110F]/30 rounded-lg">
+                <span className="text-[#5C554F] dark:text-[#A8A095] text-[10px] uppercase block font-bold">
+                  Timetable Impact
+                </span>
+                <span className="font-display text-2xl font-black text-[#14110F] dark:text-[#FAF5E8]">
+                  26.4%
+                </span>
+                <span className="text-[10px] text-[#5C554F] block">
+                  Share of forecast variance explained
+                </span>
+              </div>
+              <div className="p-3 bg-[#FAF5E8] dark:bg-[#221D18] border border-[#14110F]/30 rounded-lg">
+                <span className="text-[#5C554F] dark:text-[#A8A095] text-[10px] uppercase block font-bold">
+                  Data Mode
+                </span>
+                <span className="font-display text-2xl font-black text-[#14110F] dark:text-[#FAF5E8]">
+                  Simulated data
+                </span>
+                <span className="text-[10px] text-[#5C554F] block">
+                  Replaces with learned after 14d
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1 font-mono text-[11px] text-[#5C554F] dark:text-[#A8A095]">
+              <div className="font-bold text-[#14110F] dark:text-[#FAF5E8] uppercase">
+                New Features Added:
+              </div>
+              <div>• <code>peak_expected_arrivals_15m</code>: Next 15m peak arrivals (headcount)</div>
+              <div>• <code>total_timetable_volume</code>: Total scheduled block volume</div>
+              <div>• <code>blocks_releasing_20m</code>: Count of blocks releasing in 20m</div>
+              <div>• <code>minutes_to_largest_release</code>: Minutes until biggest release wave</div>
+            </div>
+
+            <div className="p-2.5 bg-[#FAF5E8] dark:bg-[#221D18] border border-[#14110F]/20 rounded-lg font-mono text-[11px] text-[#5C554F]">
+              ℹ️ <strong>Stale / Missing Fallback:</strong> If timetable is not uploaded or older than semester effective date, model automatically falls back to baseline features without disruption.
+            </div>
+          </div>
+
+          {/* Card 2: Waste Model with Voting Signals */}
+          <div className="p-5 bg-white dark:bg-[#1E1A17] border-2 border-[#14110F] rounded-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-mono text-[10px] font-bold text-[#5C554F] uppercase block">
+                  Model: Dish Waste Estimator (Gradient Boosted)
+                </span>
+                <span className="font-display text-2xl font-black uppercase text-[#14110F] dark:text-[#FAF5E8]">
+                  With Weekly Menu Voting Signals
+                </span>
+              </div>
+              <span className="px-2.5 py-1 rounded bg-[#2F6B3A] text-[#FAF5E8] font-mono text-xs font-black uppercase border border-[#14110F]">
+                PROMOTED
+              </span>
+            </div>
+
+            <div className="p-3.5 bg-[#2F6B3A]/10 border-2 border-[#2F6B3A] rounded-xl font-mono text-xs">
+              <div className="font-black text-[#2F6B3A] text-sm">
+                With weekly voting: MAE 1.42% vs 1.69%, 16% better
+              </div>
+              <div className="text-[#5C554F] dark:text-[#A8A095] text-[11px] mt-1">
+                Candidate model incorporating student vote share into recipe popularity reduced waste prediction error by 0.27 percentage points.
+              </div>
+            </div>
+
+            {/* Impact Metric */}
+            <div className="grid grid-cols-2 gap-3 font-mono text-xs">
+              <div className="p-3 bg-[#FAF5E8] dark:bg-[#221D18] border border-[#14110F]/30 rounded-lg">
+                <span className="text-[#5C554F] dark:text-[#A8A095] text-[10px] uppercase block font-bold">
+                  Voting Signal Gain
+                </span>
+                <span className="font-display text-2xl font-black text-[#14110F] dark:text-[#FAF5E8]">
+                  +16.0%
+                </span>
+                <span className="text-[10px] text-[#5C554F] block">
+                  Accuracy boost on recipe leftovers
+                </span>
+              </div>
+              <div className="p-3 bg-[#FAF5E8] dark:bg-[#221D18] border border-[#14110F]/30 rounded-lg">
+                <span className="text-[#5C554F] dark:text-[#A8A095] text-[10px] uppercase block font-bold">
+                  Data Mode
+                </span>
+                <span className="font-display text-2xl font-black text-[#14110F] dark:text-[#FAF5E8]">
+                  Simulated data
+                </span>
+                <span className="text-[10px] text-[#5C554F] block">
+                  Aggregated ballot shares only
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1 font-mono text-[11px] text-[#5C554F] dark:text-[#A8A095]">
+              <div className="font-bold text-[#14110F] dark:text-[#FAF5E8] uppercase">
+                New Features Added:
+              </div>
+              <div>• <code>weekly_vote_share</code>: % share of votes won on ballot</div>
+              <div>• <code>vote_turnout_weight</code>: Confidence scale based on voter turnout</div>
+              <div>• <code>rejection_reason_penalty</code>: Negative sentiment weighting</div>
+            </div>
+
+            <div className="p-2.5 bg-[#FAF5E8] dark:bg-[#221D18] border border-[#14110F]/20 rounded-lg font-mono text-[11px] text-[#5C554F]">
+              🔒 <strong>Student Privacy:</strong> Model trains strictly on aggregated ballot percentages. Individual votes and student identities are decoupled and never ingested into features.
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 5. INTERACTIVE RETRAINING CONSOLE */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 shadow-brutal-md space-y-4">

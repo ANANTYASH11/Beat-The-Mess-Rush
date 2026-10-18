@@ -1,0 +1,37 @@
+{
+  "Home": {
+    "score": 31,
+    "lcp": "10.2\u00a0s",
+    "tbt": "1,260\u00a0ms",
+    "cls": "0",
+    "speed_index": "10.6\u00a0s"
+  },
+  "Student": {
+    "score": 99,
+    "lcp": "1.6\u00a0s",
+    "tbt": "0\u00a0ms",
+    "cls": "0",
+    "speed_index": "1.8\u00a0s"
+  },
+  "Staff": {
+    "score": 98,
+    "lcp": "1.8\u00a0s",
+    "tbt": "0\u00a0ms",
+    "cls": "0",
+    "speed_index": "2.0\u00a0s"
+  },
+  "Kitchen": {
+    "score": 100,
+    "lcp": "1.4\u00a0s",
+    "tbt": "0\u00a0ms",
+    "cls": "0",
+    "speed_index": "1.6\u00a0s"
+  },
+  "Display": {
+    "score": 99,
+    "lcp": "1.4\u00a0s",
+    "tbt": "130\u00a0ms",
+    "cls": "0.02",
+    "speed_index": "1.7\u00a0s"
+  }
+}

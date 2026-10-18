@@ -1,32 +1,56 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import {
-  Users,
   UserPlus,
   CheckCircle,
   Hash,
   WifiOff,
   Sliders,
+  ChevronDown,
+  ChevronUp,
+  Volume2,
+  VolumeX,
+  FileText,
+  MoreHorizontal,
+  X,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useQueueStatus } from '@/hooks/useQueueStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
-import { useActiveMess } from '@/hooks/useActiveMess';
-import { SplitFlapBoard } from '@/components/ui/SplitFlap';
-import { TiffinIcon } from '@/components/ui/DhabaIcons';
-import { StampBadge } from '@/components/ui/StampBadge';
+import { useSelectedMess } from '@/hooks/useSelectedMess';
 import { ToastContainer, ToastMessage } from '@/components/ui/Toast';
 import { playDhabaSound } from '@/components/ui/CraftedInteractions';
-import { UniQInsightsPanel } from '@/components/insights/UniQInsightsPanel';
+import { university } from '@/config/university';
+
+const UniQInsightsDrawer = dynamic(
+  () => import('@/components/insights/UniQInsightsPanel').then((m) => m.UniQInsightsDrawer),
+  { ssr: false }
+);
+
+const SplitFlapBoard = dynamic(
+  () => import('@/components/ui/SplitFlap').then((m) => m.SplitFlapBoard),
+  {
+    ssr: false,
+    loading: () => <div className="h-16 w-full bg-ink/5 border-2 border-ink rounded-xl animate-pulse" />,
+  }
+);
 
 export default function StaffPage() {
-  const { messCode, activeMess, shortName } = useActiveMess();
+  const { messId, mess: activeMess, shortName, isLocked, isChanging } = useSelectedMess();
+  const messCode = messId;
   const [checkinInput, setCheckinInput] = useState('');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+  // Drawer & Accordion States
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  const [suggestionCount, setSuggestionCount] = useState(2);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+
   // SWR live queue with fast 4s polling for staff
-  const { queue, refreshQueue } = useQueueStatus(messCode, 4000);
+  const { queue, refreshQueue } = useQueueStatus(messId, 4000);
 
   const addToast = (msg: string, type: 'success' | 'error' | 'info' = 'success', onUndo?: () => void) => {
     const id = Date.now().toString();
@@ -34,7 +58,7 @@ export default function StaffPage() {
     setToasts((prev) => [...prev.slice(-3), newToast]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4500);
+    }, 4000);
   };
 
   const removeToast = (id: string) => {
@@ -42,19 +66,48 @@ export default function StaffPage() {
   };
 
   // Offline queue hook
-  const { isOnline, offlineCount, enqueueAction } = useOfflineQueue(() => {
+  const { isOnline, offlineCount, getPendingActionsForMess, enqueueAction } = useOfflineQueue(() => {
     refreshQueue();
-    addToast('Central database synchronized with local tokens.', 'info');
+    addToast('Tokens synced with server.', 'info');
   });
 
-  // 1-Tap Walk-in Action
+  // Track previous mess for change detection & unsynced warnings
+  const prevMessIdRef = React.useRef<string>(messId);
+  const isInitialMountRef = React.useRef<boolean>(true);
+
+  React.useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+
+    if (prevMessIdRef.current !== messId) {
+      const oldMessId = prevMessIdRef.current;
+      prevMessIdRef.current = messId;
+
+      // Check if there are unsynced actions for the previous mess
+      const unsyncedOld = getPendingActionsForMess(oldMessId);
+      if (unsyncedOld.length > 0) {
+        const oldMess = university.messes.find((m) => m.id === oldMessId);
+        const oldName = oldMess?.shortName || oldMess?.name || 'Central South';
+        addToast(`${unsyncedOld.length} actions for ${oldName} are still syncing`, 'error');
+      }
+
+      // Clear local queue view, notes & suggestions
+      setCheckinInput('');
+      setNotesOpen(false);
+      setInsightsOpen(false);
+    }
+  }, [messId, getPendingActionsForMess]);
+
+  // 1-Tap Walk-in Action (Primary Action)
   const handleWalkIn = async () => {
     playDhabaSound('press');
     try {
       const res = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'WALKIN', messCode }),
+        body: JSON.stringify({ action: 'WALKIN', messCode: messId }),
       });
 
       if (res.ok) {
@@ -64,19 +117,19 @@ export default function StaffPage() {
         throw new Error('Server error');
       }
     } catch {
-      enqueueAction('/api/queue', { action: 'WALKIN', messCode });
+      enqueueAction('/api/queue', { action: 'WALKIN', messCode: messId }, messId);
       addToast('Offline: Walk-in saved locally', 'info');
     }
   };
 
-  // 1-Tap Served Action (with counter bell ding!)
+  // 1-Tap Served Action
   const handleServed = async () => {
     playDhabaSound('ding');
     try {
       const res = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'SERVED', messCode }),
+        body: JSON.stringify({ action: 'SERVED', messCode: messId }),
       });
 
       if (res.ok) {
@@ -86,7 +139,7 @@ export default function StaffPage() {
         throw new Error('Server error');
       }
     } catch {
-      enqueueAction('/api/queue', { action: 'SERVED', messCode });
+      enqueueAction('/api/queue', { action: 'SERVED', messCode: messId }, messId);
       addToast('Offline: Served action saved locally', 'info');
     }
   };
@@ -102,7 +155,7 @@ export default function StaffPage() {
       const res = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'CHECKIN', messCode, codeOrRoll: code }),
+        body: JSON.stringify({ action: 'CHECKIN', messCode: messId, codeOrRoll: code }),
       });
 
       const data = await res.json();
@@ -114,7 +167,7 @@ export default function StaffPage() {
         addToast(data.error || 'Token verification failed', 'error');
       }
     } catch {
-      enqueueAction('/api/queue', { action: 'CHECKIN', messCode, codeOrRoll: code });
+      enqueueAction('/api/queue', { action: 'CHECKIN', messCode: messId, codeOrRoll: code }, messId);
       addToast(`Offline: Token ${code} stored locally`, 'info');
       setCheckinInput('');
     }
@@ -127,14 +180,14 @@ export default function StaffPage() {
       const res = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'DRIFT_ADJUST', messCode, delta }),
+        body: JSON.stringify({ action: 'DRIFT_ADJUST', messCode: messId, delta }),
       });
       if (res.ok) {
         addToast(`Headcount adjusted by ${delta > 0 ? '+' : ''}${delta}`, 'info');
         refreshQueue();
       }
     } catch {
-      enqueueAction('/api/queue', { action: 'DRIFT_ADJUST', messCode, delta });
+      enqueueAction('/api/queue', { action: 'DRIFT_ADJUST', messCode: messId, delta }, messId);
       addToast(`Offline: Adjusted ${delta > 0 ? '+' : ''}${delta}`, 'info');
     }
   };
@@ -144,271 +197,339 @@ export default function StaffPage() {
   const serviceRate = queue?.serviceRate ?? 7.5;
   const crowdLevel = (queue?.crowdLevel ?? 'MEDIUM').toUpperCase();
 
-  // Animated tiffin icons representing waiting students in line
-  const tiffinIcons = Array.from({ length: Math.min(20, Math.max(3, queueCount)) });
-
   return (
-    <div
-      className="w-full max-w-[1280px] mx-auto px-6 lg:px-8 py-3 sm:py-6 space-y-3 sm:space-y-5 pb-20"
-      id="staff-control-console"
-    >
-      {/* Toast notifications with Undo */}
+    <div className="w-full max-w-[1280px] mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-8 pb-24 font-mono text-[14px] text-ink">
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
 
-      {/* OFFLINE STRIP */}
-      <AnimatePresence>
-        {(!isOnline || offlineCount > 0) && (
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            className="p-3 bg-[#D7312B] text-white border-2 border-ink rounded-xl shadow-offset-sm flex items-center justify-between font-mono font-black text-xs sm:text-sm tracking-wider uppercase select-none"
-          >
-            <div className="flex items-center gap-2.5">
-              <WifiOff className="w-4 h-4 animate-pulse" />
-              <span>
-                COUNTER OFFLINE • SAVING TOKENS LOCALLY ({offlineCount})
-              </span>
-            </div>
-            <span className="bg-[#14110F] text-[#FAF5E8] px-2.5 py-0.5 rounded text-xs border border-[#FAF5E8]">
-              AUTO-SYNC PENDING
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* CONSOLE HEADER BOARD */}
-      <div className="bg-[#FAF5E8] dark:bg-[#221D18] border-2 border-ink rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-offset-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
-        <div className="space-y-0.5">
+      {/* ── 7. OFFLINE STRIP: THIN TOP STRIP ONLY WHEN OFFLINE, NOTHING OTHERWISE ── */}
+      {!isOnline && (
+        <div className="py-2 px-4 bg-[#D7312B] text-white rounded-lg flex items-center justify-between text-[14px] font-mono font-bold">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-widest bg-[#D7312B] text-white px-2 py-0.5 rounded border border-ink">
-              STAFF CONSOLE
-            </span>
-            <span className="font-mono text-xs font-bold text-ink-muted">
-              SERVING LINE #1 • {shortName.toUpperCase()}
-            </span>
+            <WifiOff className="w-4 h-4" />
+            <span>COUNTER OFFLINE • SAVING LOCALLY ({offlineCount})</span>
           </div>
-          <h1 className="font-display text-2xl sm:text-5xl font-black text-ink uppercase tracking-wide leading-none">
-            SERVING COUNTER DECK
+          <span>AUTO-SYNC PENDING</span>
+        </div>
+      )}
+
+      {/* ── 1. SLIM ONE-LINE HEADER ── */}
+      <header className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b-2 border-ink">
+        <div className="flex items-center gap-2">
+          <h1 className="font-display text-[22px] sm:text-[24px] font-black uppercase text-ink tracking-wide leading-none">
+            Staff — {shortName}
           </h1>
-          <p className="font-serif italic text-xs sm:text-sm text-ink-muted hidden sm:block">
-            High-contrast 1-tap console built for steam, noise, and rapid queue handling.
-          </p>
         </div>
 
-        <div className="flex items-center gap-2.5 sm:gap-3 self-stretch sm:self-auto justify-between sm:justify-end">
-          <div className="bg-[#1C2220] dark:bg-[#151210] border-2 border-ink text-white px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-center shadow-offset-xs">
-            <div className="font-mono text-[8px] sm:text-[9px] uppercase tracking-wider text-[#A39B8F]">
-              THROUGHPUT
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 font-mono text-[14px]">
+          {/* Live Throughput */}
+          <span className="font-bold text-ink">
+            ~{serviceRate} served / min
+          </span>
+
+          {/* Online/Offline Status Dot */}
+          <div className="flex items-center gap-1.5 font-bold">
+            <span
+              className={`w-2.5 h-2.5 rounded-full border border-ink ${
+                isOnline ? 'bg-[#2F6B3A]' : 'bg-[#D7312B]'
+              }`}
+            />
+            <span>{isOnline ? 'Live' : 'Offline'}</span>
+          </div>
+
+          {/* 4. UniQ Insights Badge in Header */}
+          <button
+            type="button"
+            onClick={() => setInsightsOpen(true)}
+            className="min-h-[48px] px-3.5 border-2 border-ink rounded-lg font-mono text-[14px] font-bold text-ink hover:bg-saffron transition-colors cursor-pointer flex items-center"
+          >
+            {suggestionCount} suggestions
+          </button>
+
+          {/* 6. "More" Menu Button */}
+          <button
+            type="button"
+            onClick={() => setMoreMenuOpen(true)}
+            className="min-h-[48px] px-3.5 border-2 border-ink rounded-lg font-mono text-[14px] font-bold text-ink hover:bg-ink hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+            <span>More</span>
+          </button>
+        </div>
+      </header>
+
+      {/* ── 5. SHIFT NOTES: COLLAPSED BAR "NOTES (1 NEW)" THAT EXPANDS IN PLACE ── */}
+      <section className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setNotesOpen(!notesOpen)}
+          className="w-full min-h-[56px] px-6 py-4 border-2 border-ink rounded-xl bg-white dark:bg-[#1E1A17] flex items-center justify-between font-mono text-[14px] font-bold text-ink hover:bg-ink/5 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-saffron" />
+            <span>Shift Notes (1 new)</span>
+          </div>
+          {notesOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+
+        {notesOpen && (
+          <div className="p-6 bg-white dark:bg-[#1E1A17] border-2 border-ink rounded-xl space-y-2 animate-in fade-in-50 duration-200">
+            <div className="font-display text-[24px] font-black uppercase text-ink">
+              KITCHEN HANDOVER NOTES
             </div>
-            <div className="font-display text-lg sm:text-2xl text-[#58B971] tracking-wider leading-none">
-              ~{serviceRate} / MIN
+            <p className="font-serif text-[18px] text-ink leading-relaxed">
+              &quot;Dinner prep on schedule. Extra sambhar and dal handi prepared for peak batch at 20:00. 
+              Counter #2 dedicated to zero-wait express pass check-ins.&quot;
+            </p>
+            <div className="font-mono text-[14px] text-ink-muted pt-1">
+              Logged by Head Chef at 18:15 • Verified
             </div>
           </div>
-          <StampBadge text="LIVE DISPATCH" color="saffron" />
-        </div>
-      </div>
+        )}
+      </section>
 
       {/* 
         LAYOUT ORDER:
-        Desktop: Header, then Live Board (Left 60%) next to the three huge controls (Right 40%),
-                 then notes panel, then insights cards.
-        Mobile:  Header, then Board on top, then controls directly below it, then notes panel, then insights last.
+        Desktop: Left 60% = Live Board, Right 40% = The Three Large Controls.
+        Mobile: Controls FIRST (Order 1), Live Board BELOW (Order 2).
       */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-5 items-start">
-        {/* LEFT 60% on desktop (lg:col-span-7): Live Split-Flap Board */}
-        <div className="lg:col-span-7 space-y-1.5 sm:space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <div>
-              <span className="font-mono text-xs sm:text-sm font-black uppercase tracking-widest text-ink block">
-                LIVE COUNTER STATUS
-              </span>
-              <h2 className="font-display text-xl sm:text-2xl font-black text-ink uppercase leading-none">
-                COUNTER QUEUE STATUS
-              </h2>
-            </div>
-            <span className="font-mono text-[10px] sm:text-xs font-bold text-ink-muted">
-              SPLIT-FLAP
-            </span>
-          </div>
-
-          <SplitFlapBoard
-            messLabel={shortName.toUpperCase()}
-            queueCount={queueCount}
-            waitRange={waitEstimate}
-            crowdStatus={crowdLevel}
-          />
-        </div>
-
-        {/* RIGHT 40% on desktop (lg:col-span-5): The Three Huge Controls */}
-        <div className="lg:col-span-5 flex flex-col gap-2 sm:gap-3">
-          {/* CONTROL 1: +1 WALK-IN */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* 
+          ── CONTROLS (RIGHT 40% ON DESKTOP, ORDER 1 ON MOBILE) ── 
+          Each button at least 96px tall, card padding 24px (p-6), single 2px border!
+        */}
+        <div className="lg:col-span-5 order-1 lg:order-2 flex flex-col gap-6">
+          {/* PRIMARY BUTTON: +1 WALK-IN (Saffron accent, at least 96px tall) */}
           <button
             type="button"
+            id="staff-btn-walkin"
             onClick={handleWalkIn}
-            className="w-full min-h-[64px] sm:min-h-[102px] p-2.5 sm:p-5 bg-[#F2B705] text-[#14110F] hover:bg-[#F7C11E] active:bg-[#DDA300] cursor-pointer text-left flex items-center justify-between gap-3 border-2 border-ink rounded-xl sm:rounded-2xl shadow-offset-md select-none transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            className="w-full min-h-[96px] p-6 bg-saffron text-ink border-2 border-ink rounded-2xl shadow-offset-sm hover:-translate-y-0.5 active:translate-y-0 text-left flex items-center justify-between gap-4 transition-all duration-200 cursor-pointer"
           >
-            <div className="space-y-0.5">
-              <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-[#14110F]/70 block">
-                GATE ADMISSION
-              </span>
-              <span className="font-display text-2xl sm:text-4xl font-black tracking-wide text-[#14110F] block leading-none">
+            <div className="space-y-1">
+              <span className="font-display text-[40px] font-black tracking-wide leading-none block">
                 +1 WALK-IN
               </span>
-              <span className="font-serif italic text-[11px] sm:text-xs text-[#14110F]/80 block">
-                Tap when student joins serving queue
+              <span className="font-mono text-[14px] font-bold block opacity-90">
+                Tap when student joins line
               </span>
             </div>
-            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-[#14110F] text-[#FAF5E8] border-2 border-ink flex items-center justify-center shrink-0 shadow-offset-xs">
-              <UserPlus className="w-5 h-5 sm:w-7 sm:h-7" />
+            <div className="w-12 h-12 rounded-xl bg-ink text-white flex items-center justify-center shrink-0 border border-ink">
+              <UserPlus className="w-6 h-6" />
             </div>
           </button>
 
-          {/* CONTROL 2: CHECK-IN BY CODE */}
-          <div className="bg-[#FAF5E8] dark:bg-[#221D18] border-2 border-ink rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-offset-md">
-            <form onSubmit={handleCodeCheckIn} className="space-y-1.5 sm:space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="font-mono text-[11px] sm:text-xs font-black uppercase text-ink flex items-center gap-1.5">
-                  <Hash className="w-3.5 h-3.5 text-[#F28C1B]" />
-                  <span>CHECK-IN BY CODE</span>
-                </label>
-                <span className="font-mono text-[10px] text-ink-muted">
-                  CODE OR ROLL
+          {/* CONTROL 2: CHECK-IN BY CODE (At least 96px tall, single 2px border, p-4 sm:p-6) */}
+          <div className="w-full min-h-[96px] p-4 sm:p-6 bg-white dark:bg-[#1E1A17] border-2 border-ink rounded-2xl">
+            <form onSubmit={handleCodeCheckIn} className="space-y-3">
+              <div className="flex items-center justify-between font-mono text-[14px] font-bold text-ink">
+                <span className="flex items-center gap-1.5 uppercase">
+                  <Hash className="w-4 h-4 text-saffron" />
+                  <span>Check-in by code</span>
                 </span>
+                <span className="text-ink-muted text-[13px] sm:text-[14px]">4-digit code</span>
               </div>
-
-              <div className="flex gap-2">
+              <div className="flex gap-2 sm:gap-3">
                 <input
                   type="text"
                   value={checkinInput}
                   onChange={(e) => setCheckinInput(e.target.value)}
-                  placeholder="e.g. 1518 or 12200014"
-                  className="flex-1 bg-bg border-2 border-ink rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 text-base sm:text-xl font-mono font-black text-ink placeholder-ink-muted/50 focus:outline-none focus:ring-2 focus:ring-[#F28C1B]"
+                  placeholder="e.g. 1518"
+                  className="flex-1 min-w-0 min-h-[56px] px-3 sm:px-4 font-mono text-[16px] sm:text-[18px] font-bold bg-white dark:bg-[#14110F] border-2 border-ink rounded-xl text-ink focus:outline-none focus:border-saffron"
                 />
                 <button
                   type="submit"
-                  className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#14110F] dark:bg-[#F4ECD8] text-[#FAF5E8] dark:text-[#14110F] hover:bg-[#2A2521] text-sm sm:text-base font-display tracking-wider uppercase rounded-lg sm:rounded-xl border-2 border-ink shrink-0 active:translate-x-[1px] active:translate-y-[1px]"
+                  className="min-h-[56px] px-4 sm:px-6 shrink-0 bg-ink text-white font-mono text-[14px] font-black uppercase rounded-xl border-2 border-ink hover:bg-ink/90 active:translate-y-0.5 transition-colors cursor-pointer"
                 >
-                  VERIFY &amp; ADMIT
+                  Verify
                 </button>
               </div>
             </form>
           </div>
 
-          {/* CONTROL 3: SERVED & EXIT */}
+          {/* CONTROL 3: SERVED & EXIT (At least 96px tall, single 2px border, p-6) */}
           <button
             type="button"
+            id="staff-btn-served"
             onClick={handleServed}
-            className="w-full min-h-[64px] sm:min-h-[102px] p-2.5 sm:p-5 bg-[#2F6B3A] text-white hover:bg-[#377A44] active:bg-[#25572E] cursor-pointer text-left flex items-center justify-between gap-3 border-2 border-ink rounded-xl sm:rounded-2xl shadow-offset-md select-none transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            className="w-full min-h-[96px] p-6 bg-white dark:bg-[#1E1A17] text-ink border-2 border-ink rounded-2xl shadow-offset-sm hover:-translate-y-0.5 active:translate-y-0 text-left flex items-center justify-between gap-4 transition-all duration-200 cursor-pointer"
           >
-            <div className="space-y-0.5">
-              <span className="font-mono text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-white/70 block">
-                COUNTER COMPLETE
-              </span>
-              <span className="font-display text-2xl sm:text-4xl font-black tracking-wide text-white block leading-none">
+            <div className="space-y-1">
+              <span className="font-display text-[40px] font-black tracking-wide leading-none block">
                 SERVED &amp; EXIT
               </span>
-              <span className="font-serif italic text-[11px] sm:text-xs text-white/80 block">
-                Tap when plate is handed out (rings bell 🔔)
+              <span className="font-mono text-[14px] font-bold block text-ink-muted">
+                Tap when thali is handed out 🔔
               </span>
             </div>
-            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-white text-[#2F6B3A] border-2 border-ink flex items-center justify-center shrink-0 shadow-offset-xs">
-              <CheckCircle className="w-5 h-5 sm:w-7 sm:h-7" />
+            <div className="w-12 h-12 rounded-xl border-2 border-ink bg-white dark:bg-[#14110F] text-[#2F6B3A] dark:text-[#58B971] flex items-center justify-center shrink-0">
+              <CheckCircle className="w-6 h-6" />
             </div>
           </button>
         </div>
-      </div>
 
-      {/* THEN: THE NOTES PANEL (Visual Queue Line & Headcount Drift) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-        {/* Visual Line Headcount Visual */}
-        <div className="bg-[#FAF5E8] dark:bg-[#221D18] border-2 border-ink rounded-2xl p-4 sm:p-5 shadow-offset-md space-y-3">
-          <div className="flex items-center justify-between border-b-2 border-ink/15 pb-2">
-            <span className="font-mono text-xs font-black uppercase text-ink flex items-center gap-2">
-              <Users className="w-4 h-4 text-saffron" />
-              <span>LINE HEADCOUNT VISUAL ({queueCount} IN QUEUE)</span>
-            </span>
-            <span className="font-mono text-[10px] text-ink-muted">
-              SERVING HEAD ➔
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 p-3 bg-[#E8DFC7] dark:bg-[#1A1613] border-2 border-ink rounded-xl min-h-[56px]">
-            {queueCount === 0 && (
-              <span className="font-mono text-xs text-ink-muted italic">
-                Abhi line khali hai (0 in queue)
+        {/* 
+          ── 3. LIVE BOARD (LEFT 60% ON DESKTOP, ORDER 2 ON MOBILE) ── 
+          Shows big queue number, wait range, and status badge as simple large text.
+          Single short split-flap row auto-scales and never clips.
+        */}
+        <div className="lg:col-span-7 order-2 lg:order-1 space-y-6">
+          <div className="p-6 bg-white dark:bg-[#1E1A17] border-2 border-ink rounded-2xl space-y-6">
+            <div className="flex items-center justify-between border-b-2 border-ink/20 pb-3 font-mono text-[14px]">
+              <span className="font-black uppercase text-ink">
+                Live Counter Board
               </span>
-            )}
-            {tiffinIcons.map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 350, damping: 20 }}
-                className="p-1.5 bg-[#FAF5E8] dark:bg-[#221D18] border-2 border-ink rounded-lg shadow-offset-xs flex items-center gap-1 group"
-                title={`Student in queue #${i + 1}`}
-              >
-                <TiffinIcon className="w-4 h-4 text-ink" />
-                <span className="font-mono text-[9px] font-bold text-ink-muted">
-                  #{i + 1}
+              <span className="font-bold text-ink-muted">
+                {shortName.toUpperCase()}
+              </span>
+            </div>
+
+            {/* Simple Large Text: Big Queue Number, Wait Range & Colored Status Badge */}
+            <div className="grid grid-cols-3 gap-4 text-center items-center">
+              <div className="space-y-1">
+                <span className="font-mono text-[14px] text-ink-muted block uppercase">
+                  Queue
                 </span>
-              </motion.div>
-            ))}
-            {queueCount > 20 && (
-              <span className="font-mono text-xs font-black px-2 py-1 bg-[#14110F] text-[#FAF5E8] dark:bg-[#FAF5E8] dark:text-[#14110F] rounded">
-                +{queueCount - 20} MORE
-              </span>
-            )}
-          </div>
-        </div>
+                <span className="font-display text-[40px] font-black leading-none text-ink block">
+                  {queueCount}
+                </span>
+              </div>
 
-        {/* Headcount Drift Alignment */}
-        <div className="bg-[#FAF5E8] dark:bg-[#221D18] border-2 border-ink rounded-2xl p-4 sm:p-5 shadow-offset-md flex flex-col justify-between gap-3">
-          <div>
-            <div className="font-mono text-xs font-black uppercase text-ink flex items-center gap-1.5">
-              <Sliders className="w-4 h-4 text-[#D7312B]" />
-              <span>HEADCOUNT DRIFT ALIGNMENT</span>
-            </div>
-            <div className="font-serif text-xs text-ink-muted mt-1 leading-relaxed">
-              Correct counter line count when students leave line or skip without tapping.
-            </div>
-          </div>
+              <div className="space-y-1">
+                <span className="font-mono text-[14px] text-ink-muted block uppercase">
+                  Wait Range
+                </span>
+                <span className="font-display text-[24px] font-black leading-none text-ink block">
+                  {waitEstimate}
+                </span>
+              </div>
 
-          <div className="flex items-center gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => handleDriftAdjust(-5)}
-              className="flex-1 py-2 bg-[#FAF5E8] dark:bg-[#1A1613] text-ink font-mono text-xs font-black border-2 border-ink rounded-xl hover:bg-[#EAE1CA] dark:hover:bg-[#2D2620] shadow-offset-xs active:translate-x-[1px] active:translate-y-[1px]"
-            >
-              -5
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDriftAdjust(-1)}
-              className="flex-1 py-2 bg-[#FAF5E8] dark:bg-[#1A1613] text-[#D7312B] font-mono text-xs font-black border-2 border-ink rounded-xl hover:bg-[#EAE1CA] dark:hover:bg-[#2D2620] shadow-offset-xs active:translate-x-[1px] active:translate-y-[1px]"
-            >
-              -1 Line
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDriftAdjust(1)}
-              className="flex-1 py-2 bg-[#FAF5E8] dark:bg-[#1A1613] text-[#2F6B3A] dark:text-[#58B971] font-mono text-xs font-black border-2 border-ink rounded-xl hover:bg-[#EAE1CA] dark:hover:bg-[#2D2620] shadow-offset-xs active:translate-x-[1px] active:translate-y-[1px]"
-            >
-              +1 Line
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDriftAdjust(5)}
-              className="flex-1 py-2 bg-[#FAF5E8] dark:bg-[#1A1613] text-ink font-mono text-xs font-black border-2 border-ink rounded-xl hover:bg-[#EAE1CA] dark:hover:bg-[#2D2620] shadow-offset-xs active:translate-x-[1px] active:translate-y-[1px]"
-            >
-              +5
-            </button>
+              <div className="space-y-1">
+                <span className="font-mono text-[14px] text-ink-muted block uppercase">
+                  Status
+                </span>
+                <span
+                  className={`inline-block px-3 py-1 font-mono text-[14px] font-black uppercase rounded border-2 border-ink ${
+                    crowdLevel === 'QUIET' || crowdLevel === 'LOW'
+                      ? 'bg-[#2F6B3A]/20 text-[#2F6B3A] dark:text-[#58B971]'
+                      : crowdLevel === 'BUSY' || crowdLevel === 'HIGH'
+                      ? 'bg-[#D7312B]/20 text-[#D7312B]'
+                      : 'bg-saffron/20 text-ink'
+                  }`}
+                >
+                  {crowdLevel}
+                </span>
+              </div>
+            </div>
+
+            {/* Single Short Row Split-Flap that auto-scales and never clips */}
+            <div className="pt-2">
+              <SplitFlapBoard
+                messLabel={shortName.toUpperCase()}
+                queueCount={queueCount}
+                waitRange={waitEstimate}
+                crowdStatus={crowdLevel}
+                soundEnabled={soundEnabled}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* THEN: INSIGHTS CARDS (LAST!) */}
-      <UniQInsightsPanel target="STAFF" messCode={messCode} className="mt-2" />
+      {/* ── 4. UNIQ INSIGHTS RIGHT DRAWER ── */}
+      <UniQInsightsDrawer
+        isOpen={insightsOpen}
+        onClose={() => setInsightsOpen(false)}
+        target="STAFF"
+        messCode={messCode}
+        onCountChange={setSuggestionCount}
+      />
+
+      {/* ── 6. "MORE" MODAL FOR DRIFT CORRECTION, SOUND SETTING & MANUAL ENTRY ── */}
+      {moreMenuOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            onClick={() => setMoreMenuOpen(false)}
+            className="fixed inset-0 bg-ink/50 backdrop-blur-xs transition-opacity duration-200"
+          />
+          <div
+            className="relative w-full max-w-lg bg-[#FAF5E8] dark:bg-[#1E1A17] border-2 border-ink rounded-2xl p-6 shadow-2xl z-10 space-y-6 transition-all duration-200"
+          >
+            <div className="flex items-center justify-between border-b-2 border-ink pb-3">
+              <h3 className="font-display text-[24px] font-black uppercase text-ink">
+                Counter Controls &amp; Settings
+              </h3>
+              <button
+                type="button"
+                onClick={() => setMoreMenuOpen(false)}
+                className="w-12 h-12 min-w-[48px] min-h-[48px] border-2 border-ink rounded-lg flex items-center justify-center text-ink hover:bg-ink hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drift Correction (+/-) */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 font-mono text-[14px] font-bold text-ink">
+                <Sliders className="w-4 h-4 text-saffron" />
+                <span>Headcount Drift Correction</span>
+              </div>
+              <p className="font-serif text-[18px] text-ink-muted leading-snug">
+                Align headcount when students leave or enter line without tapping.
+              </p>
+              <div className="grid grid-cols-4 gap-3 pt-1">
+                {[-5, -1, 1, 5].map((delta) => (
+                  <button
+                    key={delta}
+                    type="button"
+                    onClick={() => handleDriftAdjust(delta)}
+                    className="min-h-[56px] border-2 border-ink rounded-xl font-mono text-[14px] font-black bg-white dark:bg-[#14110F] text-ink hover:bg-saffron transition-colors"
+                  >
+                    {delta > 0 ? `+${delta}` : delta}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sound Setting (Flap audio) */}
+            <div className="pt-4 border-t-2 border-ink/20 flex items-center justify-between">
+              <div>
+                <div className="font-mono text-[14px] font-bold text-ink">
+                  Split-Flap Mechanical Audio
+                </div>
+                <div className="font-serif text-[18px] text-ink-muted">
+                  Click sound during counter updates
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className="min-h-[56px] px-4 border-2 border-ink rounded-xl font-mono text-[14px] font-bold flex items-center gap-2 bg-white dark:bg-[#14110F] text-ink"
+              >
+                {soundEnabled ? (
+                  <>
+                    <Volume2 className="w-5 h-5 text-saffron" />
+                    <span>Sound: On</span>
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="w-5 h-5" />
+                    <span>Sound: Muted</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setMoreMenuOpen(false)}
+              className="w-full min-h-[56px] bg-ink text-white font-mono text-[14px] font-black uppercase rounded-xl border-2 border-ink"
+            >
+              Close Settings
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

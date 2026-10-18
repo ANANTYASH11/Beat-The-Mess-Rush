@@ -4,8 +4,13 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
+  const messCode = searchParams.get('messCode') || searchParams.get('messId');
+  const targetMess = messCode
+    ? university.messes.find((m) => m.id === messCode || m.name.toLowerCase() === messCode.toLowerCase()) || university.messes[0]
+    : university.messes[0];
+
   const costPerKg = Number(searchParams.get('costPerKg')) || university.costPerKgFood;
-  const defaultPlates = Math.round((university.messes[0].seats || 350) * 2.3);
+  const defaultPlates = Math.round((targetMess.seats || targetMess.demoSeats || 350) * 2.3);
   const platesPerDay = Number(searchParams.get('platesPerDay')) || defaultPlates;
   const adoptionPct = Number(searchParams.get('adoptionPct')) || 42;
 
@@ -62,7 +67,11 @@ export async function GET(req: NextRequest) {
     console.error('Error fetching pilot settings:', err);
   }
 
+  const studentCount = targetMess.students || targetMess.demoStudents || 600;
+
   return NextResponse.json({
+    messCode: targetMess.id,
+    messName: targetMess.name,
     assumptions: {
       costPerKg,
       platesPerDay,
@@ -99,12 +108,12 @@ export async function GET(req: NextRequest) {
       {
         phase: 'Week 1',
         title: 'Passive Baseline Tracking',
-        desc: `Zero student nudges at ${university.messes[0].name}. Mess staff weigh digital scale plate return once daily and record cooked vat leftovers to establish ground truth.`,
+        desc: `Zero student nudges at ${targetMess.name}. Mess staff weigh digital scale plate return once daily and record cooked vat leftovers to establish ground truth.`,
       },
       {
         phase: 'Weeks 2-3',
         title: 'Pilot Activation',
-        desc: `Launch mobile student app for 15-min arrival slot nudges for ${university.messes[0].students} residents. Kitchen operates blended forecasts with 1-click waste logging.`,
+        desc: `Launch mobile student app for 15-min arrival slot nudges for ${studentCount} residents. Kitchen operates blended forecasts with 1-click waste logging.`,
       },
       {
         phase: 'Week 4',

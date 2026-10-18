@@ -1,0 +1,65 @@
+{
+  "/": {
+    "page": "Home",
+    "score": 97,
+    "fcp": "1.3\u00a0s",
+    "lcp": "1.3\u00a0s",
+    "tbt": "80\u00a0ms",
+    "cls": "0.105",
+    "speed_index": "1.4\u00a0s"
+  },
+  "/student": {
+    "page": "Student",
+    "score": 76,
+    "fcp": "1.3\u00a0s",
+    "lcp": "1.3\u00a0s",
+    "tbt": "990\u00a0ms",
+    "cls": "0.096",
+    "speed_index": "1.4\u00a0s"
+  },
+  "/staff": {
+    "page": "Staff",
+    "score": 100,
+    "fcp": "1.3\u00a0s",
+    "lcp": "1.3\u00a0s",
+    "tbt": "0\u00a0ms",
+    "cls": "0",
+    "speed_index": "1.4\u00a0s"
+  },
+  "/kitchen": {
+    "page": "Kitchen",
+    "score": 100,
+    "fcp": "1.2\u00a0s",
+    "lcp": "1.2\u00a0s",
+    "tbt": "0\u00a0ms",
+    "cls": "0.002",
+    "speed_index": "1.4\u00a0s"
+  },
+  "/impact": {
+    "page": "Impact",
+    "score": 40,
+    "fcp": "19.3\u00a0s",
+    "lcp": "19.3\u00a0s",
+    "tbt": "590\u00a0ms",
+    "cls": "0.013",
+    "speed_index": "19.4\u00a0s"
+  },
+  "/display": {
+    "page": "Display",
+    "score": 38,
+    "fcp": "13.7\u00a0s",
+    "lcp": "13.7\u00a0s",
+    "tbt": "610\u00a0ms",
+    "cls": "0.081",
+    "speed_index": "14.2\u00a0s"
+  },
+  "/case-study": {
+    "page": "Case Study",
+    "score": 76,
+    "fcp": "2.2\u00a0s",
+    "lcp": "2.2\u00a0s",
+    "tbt": "920\u00a0ms",
+    "cls": "0.004",
+    "speed_index": "2.3\u00a0s"
+  }
+}

@@ -22,12 +22,27 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const messCode = searchParams.get('messCode') || university.messes[0]?.id || 'central-mess-north';
+  const messCode = searchParams.get('messCode') || searchParams.get('messId');
+
+  if (!messCode) {
+    return NextResponse.json({ error: 'messCode parameter is required' }, { status: 400 });
+  }
+
+  const validMess = university.messes.find(
+    (m) => m.id === messCode || m.name.toLowerCase() === messCode.toLowerCase()
+  );
+  if (!validMess) {
+    return NextResponse.json(
+      { error: `Invalid messCode: ${messCode}. Does not belong to ${university.name}` },
+      { status: 404 }
+    );
+  }
+
   const dateStr = searchParams.get('date') || new Date().toISOString().split('T')[0];
   const mealType = searchParams.get('mealType') || 'Lunch';
 
   try {
-    const forecast = await calculateForecast(messCode, dateStr, mealType);
+    const forecast = await calculateForecast(validMess.id, dateStr, mealType);
     return NextResponse.json(forecast);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Error calculating forecast';
@@ -45,11 +60,18 @@ export async function POST(req: NextRequest) {
 
     const { messCode, date, mealType, eventTitle, eventAdjustmentPct, safetyBufferPct } = parsed.data;
 
+    const validMess = university.messes.find(
+      (m) => m.id === messCode || m.name.toLowerCase() === messCode.toLowerCase()
+    );
+    if (!validMess) {
+      return NextResponse.json({ error: `Mess not found: ${messCode}` }, { status: 404 });
+    }
+
     const mess = await prisma.mess.findFirst({
-      where: { code: messCode },
+      where: { code: validMess.id },
     });
     if (!mess) {
-      return NextResponse.json({ error: 'Mess not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Mess not found in database' }, { status: 404 });
     }
 
     // Upsert Event Flag

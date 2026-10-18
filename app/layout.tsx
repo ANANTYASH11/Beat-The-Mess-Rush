@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Bebas_Neue, Fraunces, IBM_Plex_Mono, Inter, Caveat } from 'next/font/google';
+import { Bebas_Neue, Fraunces, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import PwaRegister from '@/components/PwaRegister';
@@ -7,38 +7,31 @@ import Link from 'next/link';
 import HomeFooter from '@/components/home/HomeFooter';
 import { brand } from '@/config/university';
 
+// Headings & display: 1 weight (400), Latin subset, preloaded
 const bebasNeue = Bebas_Neue({
   subsets: ['latin'],
   variable: '--font-condensed',
   weight: ['400'],
   display: 'swap',
+  preload: true,
 });
 
+// Editorial accent: 1 weight (400), not preloaded
 const fraunces = Fraunces({
   subsets: ['latin'],
   variable: '--font-accent',
-  style: ['normal', 'italic'],
+  weight: ['400'],
   display: 'swap',
+  preload: false,
 });
 
+// Data & labels: 3 weights (400, 600, 700), not preloaded
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '600', '700'],
   display: 'swap',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
-});
-
-const caveat = Caveat({
-  subsets: ['latin'],
-  variable: '--font-handwriting',
-  weight: ['600', '700'],
-  display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -67,17 +60,24 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#F4ECD8',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#F4ECD8' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B0D10' },
+  ],
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
 };
+
+import { Suspense } from 'react';
+import { SelectedMessProvider } from '@/hooks/useSelectedMess';
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const fontVars = `${bebasNeue.variable} ${fraunces.variable} ${ibmPlexMono.variable} ${inter.variable} ${caveat.variable}`;
+  const fontVars = `${bebasNeue.variable} ${fraunces.variable} ${ibmPlexMono.variable}`;
 
   return (
     <html lang="en" className={`light ${fontVars}`} suppressHydrationWarning>
@@ -104,18 +104,22 @@ export default function RootLayout({
       <body
         className={`${fontVars} font-body min-h-screen flex flex-col bg-bg text-ink relative selection:bg-saffron selection:text-ink`}
       >
-        {/* Paper Grain: SVG feTurbulence overlay at 5% opacity, fixed, pointer-events: none */}
+        {/* Paper Grain: Desktop only (SVG feTurbulence is bypassed on touch devices for 60fps scrolling) */}
         <div
           aria-hidden="true"
-          className="fixed inset-0 pointer-events-none z-[9999] opacity-[0.05] contrast-125"
+          className="fixed inset-0 pointer-events-none z-[9999] opacity-[0.05] contrast-125 hidden md:block"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
           }}
         />
-        <PwaRegister />
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <HomeFooter />
+        <Suspense fallback={null}>
+          <SelectedMessProvider>
+            <PwaRegister />
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <HomeFooter />
+          </SelectedMessProvider>
+        </Suspense>
       </body>
     </html>
   );

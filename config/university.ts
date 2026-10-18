@@ -31,6 +31,7 @@ export interface MessConfig {
   demoStudents: number;
   demoCounters: number;
   demoServiceRate: number;
+  secondsPolicy?: string | null;
 }
 
 export interface MealConfig {
@@ -45,6 +46,7 @@ export interface MenuItemConfig {
   avgGramsPerPlate: number;
   unitCostInr?: number;
   isPopular?: boolean;
+  calories?: number;
 }
 
 export interface WeeklyMenuConfig {
@@ -111,6 +113,7 @@ export const LPU_MESS_CONFIGS: MessConfig[] = [
     demoStudents: 900,
     demoCounters: 4,
     demoServiceRate: 3.0,
+    secondsPolicy: "Seconds are always available at the counter upon request.",
   },
   {
     id: "central-mess-south",
@@ -131,6 +134,7 @@ export const LPU_MESS_CONFIGS: MessConfig[] = [
     demoStudents: 900,
     demoCounters: 4,
     demoServiceRate: 3.0,
+    secondsPolicy: "Seconds are always available at the counter upon request.",
   },
 
   // BOYS_HOSTEL (7)
@@ -153,6 +157,7 @@ export const LPU_MESS_CONFIGS: MessConfig[] = [
     demoStudents: 600,
     demoCounters: 4,
     demoServiceRate: 3.0,
+    secondsPolicy: "Seconds are available at the counter.",
   },
   {
     id: "boys-hostel-2",

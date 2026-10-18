@@ -97,6 +97,38 @@ export async function getSuggestions(params: {
         dataMode: 'SIMULATED',
       });
     }
+
+    // 3. Timetable class arrival spike suggestion
+    if (!inactiveKeys.has('kitchen_timetable_spike')) {
+      items.push({
+        id: 'sug-k-3',
+        key: 'kitchen_timetable_spike',
+        target: 'KITCHEN',
+        messCode,
+        recommendation: 'Expected spike at 12:50: about 250-320 students from Blocks 32 and 34. Open a second counter by 12:45.',
+        evidence: 'Timetable analysis: Classes in Blocks 32 and 34 release ~600 enrolled students between 12:45 and 12:50 with 8–10 min transit.',
+        impactRange: 'Prevents queue spillover past the entrance, keeping wait times under 5 minutes.',
+        confidence: 'High',
+        guardrailNote: 'Operational advisory: Maximum +1 temporary counter addition; advisory only.',
+        dataMode: 'SIMULATED',
+      });
+    }
+
+    // 4. Zero Waste Week standing & logging gap card
+    if (!inactiveKeys.has('kitchen_zero_waste_gap')) {
+      items.push({
+        id: 'sug-k-4',
+        key: 'kitchen_zero_waste_gap',
+        target: 'KITCHEN',
+        messCode,
+        recommendation: 'Zero Waste Challenge: Current rank #1 in Central Division (-17.3% vs baseline).',
+        evidence: 'Logging gap alert: 2 of 7 days missing plate-weight logs. Logging completeness is at 85% (80% minimum required).',
+        impactRange: 'Maintain complete plate-weight logging to preserve eligibility for Clean Plate badge.',
+        confidence: 'Medium',
+        guardrailNote: 'Fairness rule: Missing logs below 80% completeness disqualify mess from weekly honors.',
+        dataMode: 'SIMULATED',
+      });
+    }
   } else if (params.target === 'STAFF') {
     if (!inactiveKeys.has('staff_counter_open')) {
       items.push({
@@ -104,11 +136,26 @@ export async function getSuggestions(params: {
         key: 'staff_counter_open',
         target: 'STAFF',
         messCode,
-        recommendation: 'Open a second service counter at 12:50 PM.',
-        evidence: 'Pre-booking intake (+18 students/hr) predicts arrival burst exceeding 25 students between 12:45–13:05 PM.',
-        impactRange: 'Reduces queue wait time from ~11 min down to 4–6 min per student.',
+        recommendation: 'Expected spike at 12:50: about 250-320 students from Blocks 32 and 34. Open a second counter by 12:45.',
+        evidence: 'Class release schedule: Block 32 (320 students) and Block 34 (280 students) end lecture slots at 12:45 and 12:50.',
+        impactRange: 'Reduces queue wait time from ~14 min down to 4–6 min per student.',
         confidence: 'High',
         guardrailNote: 'Operational advisory: Staff discretion required before counter reassignment.',
+        dataMode: 'SIMULATED',
+      });
+    }
+
+    if (!inactiveKeys.has('staff_zero_waste_standing')) {
+      items.push({
+        id: 'sug-s-3',
+        key: 'staff_zero_waste_standing',
+        target: 'STAFF',
+        messCode,
+        recommendation: 'Zero Waste Standing: 2 of 7 days missing plate-weight logs.',
+        evidence: 'Scoring requirement: At least 80% logging completeness required. Current status is 85% (at risk of flag if today is missed).',
+        impactRange: 'Record tray weights after lunch service to secure weekly improvement score.',
+        confidence: 'High',
+        guardrailNote: 'Underlogging protection: Unlogged meal cycles cannot be used to artificially inflate score.',
         dataMode: 'SIMULATED',
       });
     }
@@ -161,9 +208,9 @@ export async function getSuggestions(params: {
       key: 'student_slot_recommend',
       target: 'STUDENT',
       messCode,
-      recommendation: '12:55 PM slot is predicted to be 5–8 minutes faster than 13:05 PM.',
-      evidence: 'Student arrivals peak sharply between 13:05 and 13:20 after academic lecture blocks.',
-      impactRange: 'Estimated queue time 3–5 min vs 11–14 min.',
+      recommendation: '12:50–13:05 is likely busy, 13:15 is quieter.',
+      evidence: 'Academic timetable releases from Blocks 32 and 34 arrive between 12:50 and 13:05.',
+      impactRange: 'Estimated queue wait 3–5 min at 13:15 vs 11–14 min at 12:55 (range estimate, not a guarantee).',
       confidence: 'Medium',
       guardrailNote: 'Prediction range estimate only; not a guaranteed service duration.',
       dataMode: 'SIMULATED',

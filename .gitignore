@@ -36,3 +36,5 @@ prisma/*.db-journal
 !prisma/dev.db
 *.sqlite
 .vercel
+/scratch/
+/*.png

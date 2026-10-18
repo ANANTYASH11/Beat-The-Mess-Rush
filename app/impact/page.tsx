@@ -18,8 +18,12 @@ import { playDhabaSound } from '@/components/ui/CraftedInteractions';
 import { university } from '@/config/university';
 import { CompareMessesTable } from '@/components/mess/CompareMessesTable';
 
+import { useSelectedMess } from '@/hooks/useSelectedMess';
+
 export default function ImpactPage() {
-  const defaultPlates = Math.round((university.messes[0].seats ?? university.messes[0].demoSeats ?? 350) * 2.3);
+  const { messId, mess: activeMess, shortName, isChanging } = useSelectedMess();
+  const messSeats = activeMess.seats ?? activeMess.demoSeats ?? 350;
+  const defaultPlates = Math.round(messSeats * 2.3);
   const [costPerKg, setCostPerKg] = useState(university.costPerKgFood);
   const [platesPerDay, setPlatesPerDay] = useState(defaultPlates);
   const [adoptionPct, setAdoptionPct] = useState(42);
@@ -27,17 +31,32 @@ export default function ImpactPage() {
   const [loading, setLoading] = useState(false);
   const [dividerPos, setDividerPos] = useState(50); // 0 to 100% split
   const [dataView, setDataView] = useState<'simulated' | 'measured'>('simulated');
+  const prevMessIdRef = React.useRef(messId);
 
   useEffect(() => {
+    prevMessIdRef.current = messId;
+    setPlatesPerDay(Math.round((activeMess.seats ?? activeMess.demoSeats ?? 350) * 2.3));
+  }, [messId, activeMess]);
+
+  useEffect(() => {
+    const fetchMessId = messId;
     setLoading(true);
     fetch(
-      `/api/impact?costPerKg=${costPerKg}&platesPerDay=${platesPerDay}&adoptionPct=${adoptionPct}`
+      `/api/impact?messId=${encodeURIComponent(fetchMessId)}&costPerKg=${costPerKg}&platesPerDay=${platesPerDay}&adoptionPct=${adoptionPct}`
     )
       .then((res) => res.json())
-      .then((data) => setImpactData(data))
+      .then((data) => {
+        if (fetchMessId === prevMessIdRef.current) {
+          setImpactData(data);
+        }
+      })
       .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [costPerKg, platesPerDay, adoptionPct]);
+      .finally(() => {
+        if (fetchMessId === prevMessIdRef.current) {
+          setLoading(false);
+        }
+      });
+  }, [messId, costPerKg, platesPerDay, adoptionPct]);
 
   const hasMeasuredData = !!(impactData?.measured?.baseline || impactData?.measured?.pilot);
 
@@ -74,11 +93,11 @@ export default function ImpactPage() {
 
         <div className="space-y-2 max-w-3xl">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-[10px] font-black uppercase tracking-widest bg-[#14110F] text-[#FAF5E8] px-2.5 py-0.5 rounded">
+            <span className="font-mono text-[14px] font-black uppercase tracking-widest bg-[#14110F] text-[#FAF5E8] px-3 py-1 rounded">
               UniQ IMPACT MODEL • {university.shortName}
             </span>
-            <span className="font-serif italic text-xs text-[#5C554F]">
-              {university.messes[0].name} ({university.messes[0].students} Students)
+            <span className="font-serif italic text-[14px] text-[#5C554F]">
+              {activeMess.name} ({activeMess.students || activeMess.demoStudents} Students)
             </span>
           </div>
 
@@ -93,13 +112,13 @@ export default function ImpactPage() {
 
         {/* View Toggle: Simulated Model vs Measured Pilot */}
         <div className="mt-5 pt-4 border-t-2 border-dashed border-[#14110F]/20 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-black uppercase text-[#14110F]">DATA MODE:</span>
-            <div className="inline-flex rounded-lg border-2 border-[#14110F] p-0.5 bg-[#EFE7D0]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-[14px] font-black uppercase text-[#14110F]">DATA MODE:</span>
+            <div className="inline-flex rounded-lg border-2 border-[#14110F] p-0.5 bg-[#EFE7D0] flex-wrap">
               <button
                 type="button"
                 onClick={() => setDataView('simulated')}
-                className={`px-3 py-1 font-mono text-xs font-black uppercase rounded transition-colors ${
+                className={`px-3.5 py-2.5 min-h-[48px] flex items-center font-mono text-[14px] font-black uppercase rounded transition-colors cursor-pointer ${
                   dataView === 'simulated'
                     ? 'bg-[#14110F] text-[#FAF5E8]'
                     : 'text-[#14110F] hover:bg-[#FAF5E8]'
@@ -110,7 +129,7 @@ export default function ImpactPage() {
               <button
                 type="button"
                 onClick={() => setDataView('measured')}
-                className={`px-3 py-1 font-mono text-xs font-black uppercase rounded transition-colors ${
+                className={`px-3.5 py-2.5 min-h-[48px] flex items-center font-mono text-[14px] font-black uppercase rounded transition-colors cursor-pointer ${
                   dataView === 'measured'
                     ? 'bg-[#2F6B3A] text-[#FAF5E8]'
                     : 'text-[#14110F] hover:bg-[#FAF5E8]'
@@ -123,15 +142,15 @@ export default function ImpactPage() {
 
           <Link
             href="/admin/pilot"
-            className="inline-flex items-center gap-1.5 font-mono text-xs font-black text-[#F28C1B] hover:text-[#14110F] bg-[#14110F] hover:bg-[#F28C1B] text-white px-3 py-1.5 rounded-lg border-2 border-[#14110F] transition-colors"
+            className="inline-flex items-center gap-2 font-mono text-[14px] font-black text-[#F28C1B] hover:text-[#14110F] bg-[#14110F] hover:bg-[#F28C1B] text-white px-4 py-2.5 min-h-[48px] rounded-lg border-2 border-[#14110F] transition-colors"
           >
-            <ClipboardCheck className="w-3.5 h-3.5" />
+            <ClipboardCheck className="w-4 h-4" />
             ENTER MEASURED BASELINE IN PILOT CONSOLE →
           </Link>
         </div>
 
         {/* Disclaimer Alert */}
-        <div className="mt-4 p-4 bg-[#F4ECD8] border-2 border-[#14110F] rounded-xl flex items-start gap-3 text-xs font-serif leading-relaxed">
+        <div className="mt-4 p-4 bg-[#F4ECD8] border-2 border-[#14110F] rounded-xl flex items-start gap-3 text-[14px] font-serif leading-relaxed">
           <ShieldAlert className="w-5 h-5 text-[#D7312B] shrink-0 mt-0.5" />
           <div className="text-[#14110F]">
             <strong className="font-bold">Pilot Audit Protocol:</strong> All projections are calibrated against our 4-week hostel baseline for {university.messes[0].name}. Figures are tagged below as <strong>Simulated</strong>, <strong>Measured baseline</strong> or <strong>Measured pilot</strong>. Built as a student project for {university.name}.

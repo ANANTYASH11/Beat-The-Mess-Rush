@@ -17,11 +17,17 @@ import {
 import { TactileButton } from '@/components/ui/TactileButton';
 import { StampBadge } from '@/components/ui/StampBadge';
 import { playDhabaSound } from '@/components/ui/CraftedInteractions';
+import { useSelectedMess } from '@/hooks/useSelectedMess';
 
 export default function AdminPage() {
+  const { messId, setMess } = useSelectedMess();
   const [messes, setMesses] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
-  const [selectedMessCode, setSelectedMessCode] = useState(university.messes[0]?.id || 'central-mess-north');
+  const [selectedMessCode, setSelectedMessCode] = useState(messId);
+
+  useEffect(() => {
+    if (messId) setSelectedMessCode(messId);
+  }, [messId]);
   const [lowThresh, setLowThresh] = useState(15);
   const [highThresh, setHighThresh] = useState(35);
   const [statusMsg, setStatusMsg] = useState('');
@@ -300,7 +306,10 @@ export default function AdminPage() {
                   <select
                     id="admin-select-mess"
                     value={selectedMessCode}
-                    onChange={(e) => setSelectedMessCode(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedMessCode(e.target.value);
+                      setMess(e.target.value);
+                    }}
                     className="w-full bg-[#FAF5E8] border-2 border-[#14110F] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#14110F] focus:outline-none focus:ring-2 focus:ring-[#F28C1B]"
                   >
                     {messes.map((m) => (

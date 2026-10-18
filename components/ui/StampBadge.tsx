@@ -34,7 +34,7 @@ export function StampBadge({
 
   return (
     <span
-      className={`inline-flex items-center justify-center px-2 py-0.5 border-2 border-dashed font-mono font-bold text-xs uppercase tracking-wider select-none ${
+      className={`inline-flex items-center justify-center px-2 py-0.5 border-2 border-dashed font-mono font-bold text-[14px] uppercase tracking-wider select-none ${
         rotate ? 'rotate-[-2deg]' : ''
       } ${style} ${className}`}
     >

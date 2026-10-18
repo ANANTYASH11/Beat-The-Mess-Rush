@@ -19,12 +19,13 @@ const ThaliScene = dynamic(
   }
 );
 
+import { useSelectedMess } from '@/hooks/useSelectedMess';
 import { university } from '@/config/university';
 
-export function ThaliLabPage() {
-  const defaultMessId = university.messes[0]?.id || 'central-mess-north';
-  const { queue } = useQueueStatus(defaultMessId);
-  const { forecast } = useForecast(defaultMessId);
+export default function ThaliLabPage() {
+  const { messId, mess: activeMess } = useSelectedMess();
+  const { queue } = useQueueStatus(messId);
+  const { forecast } = useForecast(messId);
 
   const queueCount = queue?.currentQueue ?? 20;
   const waitRange = queue?.waitRange ?? '6-11 min';
@@ -37,7 +38,7 @@ export function ThaliLabPage() {
       <div className="absolute top-6 left-6 z-30">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-bg-raised border-2 border-ink shadow-offset-sm text-xs font-mono font-bold uppercase text-ink">
           <span className="w-2 h-2 rounded-full bg-curry-leaf" />
-          <span>THALI LAB · 3D PROCEDURAL STEEL EVALUATION</span>
+          <span>THALI LAB · {activeMess.shortName.toUpperCase()} · 3D PROCEDURAL STEEL EVALUATION</span>
         </div>
       </div>
 
@@ -61,5 +62,3 @@ export function ThaliLabPage() {
     </div>
   );
 }
-
-export default ThaliLabPage;

@@ -2,19 +2,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getLiveQueueStatus } from '@/lib/queue';
 
+import { university } from '@/config/university';
+
 let simTicksRemaining = 0;
 let simInterval: NodeJS.Timeout | null = null;
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const messCode = body.messCode || 'mess-1';
+    const messCode = body.messCode || body.messId;
+
+    if (!messCode) {
+      return NextResponse.json({ error: 'messCode is required' }, { status: 400 });
+    }
+
+    const validMess = university.messes.find(
+      (m) => m.id === messCode || m.name.toLowerCase() === messCode.toLowerCase()
+    );
+    if (!validMess) {
+      return NextResponse.json({ error: `Invalid messCode: ${messCode}` }, { status: 404 });
+    }
 
     const mess = await prisma.mess.findFirst({
-      where: { code: messCode },
+      where: { code: validMess.id },
     });
     if (!mess) {
-      return NextResponse.json({ error: 'Mess not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Mess not found in database' }, { status: 404 });
     }
 
     if (simInterval) {

@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
 
 export type PortionSize = 'Small' | 'Regular' | 'Large';
 
@@ -10,7 +9,12 @@ export interface KatoriProps {
   selected: boolean;
   onSelect?: (p: PortionSize) => void;
   onClick?: () => void;
+  mealType?: string; // 'Breakfast' | 'Lunch' | 'Snacks' | 'Dinner'
+  fillPercent?: number; // 40, 70, 100
+  title?: string;
   sublabel?: string;
+  gramsLabel?: string;
+  caloriesLabel?: string;
   cal?: string;
 }
 
@@ -19,7 +23,12 @@ export function Katori({
   selected,
   onSelect,
   onClick,
+  mealType = 'Lunch',
+  fillPercent: passedFill,
+  title,
   sublabel,
+  gramsLabel,
+  caloriesLabel,
   cal,
 }: KatoriProps) {
   const handleClick = () => {
@@ -27,214 +36,223 @@ export function Katori({
     if (onClick) onClick();
   };
 
-  // Portion metadata
-  const meta = {
-    Small: {
-      fillPercent: 38,
-      title: 'Small Bowl',
-      desc: '1 Katori Dal + 1 Roti',
-      cal: cal || '320 kcal • Light bite',
-      bowlScale: 0.88,
-    },
-    Regular: {
-      fillPercent: 68,
-      title: 'Standard Thali',
-      desc: '2 Roti + Sabzi + Rice + Dal',
-      cal: cal || '650 kcal • Balanced',
-      bowlScale: 1.0,
-    },
-    Large: {
-      fillPercent: 96,
-      title: 'Full Portion',
-      desc: '3 Roti + Double Rice + Dal',
-      cal: cal || '920 kcal • Heavy hunger',
-      bowlScale: 1.1,
-    },
+  const defaultFill = {
+    Small: 40,
+    Regular: 70,
+    Large: 100,
   }[portion];
 
-  const fillHeight = selected ? meta.fillPercent : 16;
+  const fillPercent = passedFill ?? defaultFill;
+
+  const bowlScale = {
+    Small: 0.9,
+    Regular: 1.0,
+    Large: 1.1,
+  }[portion];
+
+  const normalizedMeal = (mealType || 'Lunch').toLowerCase();
 
   return (
     <button
       type="button"
       onClick={handleClick}
       aria-pressed={selected}
-      className={`relative w-full text-left p-4 sm:p-5 rounded-2xl border-[3px] transition-all flex flex-col justify-between select-none ${
+      data-portion={portion}
+      data-fill={fillPercent}
+      className={`relative w-full text-left p-6 rounded-2xl border-2 transition-all duration-200 flex flex-col justify-between min-h-[160px] select-none cursor-pointer ${
         selected
-          ? 'bg-[#FAF5E8] dark:bg-[#221D18] border-[#14110F] dark:border-[#F4ECD8] shadow-offset-md -translate-y-1 ring-2 ring-[#F28C1B]'
-          : 'bg-[#F4ECD8] dark:bg-[#1A1613] border-[#14110F]/80 dark:border-[#F4ECD8]/40 hover:-translate-y-0.5 hover:shadow-offset-xs opacity-90 hover:opacity-100'
+          ? 'bg-saffron text-ink border-ink shadow-offset-sm -translate-y-0.5'
+          : 'bg-white dark:bg-[#1E1A17] text-ink border-ink hover:-translate-y-0.5 hover:shadow-offset-xs'
       }`}
     >
-      {/* Selection Stamp Tag */}
+      {/* Selection Pill */}
       {selected && (
-        <span className="absolute top-3 right-3 font-mono text-[9px] font-black uppercase tracking-wider px-2 py-0.5 bg-[#F28C1B] text-[#14110F] border border-[#14110F] rounded">
+        <span className="absolute top-4 right-4 font-mono text-[14px] font-black uppercase tracking-wider px-2.5 py-0.5 bg-ink text-white rounded border border-ink">
           SELECTED
         </span>
       )}
 
-      {/* Illustrated Bowl (Matte Black with Brass Rim) */}
-      <div className="w-full flex items-center justify-center py-3 relative min-h-[100px]">
+      {/* ── MEAL-SPECIFIC ILLUSTRATION AREA ── */}
+      <div className="w-full flex items-center justify-center py-2 relative min-h-[96px]">
         {/* Steam Wisps when selected */}
         {selected && (
-          <div className="absolute top-0 inset-x-0 flex justify-center gap-2 pointer-events-none">
-            <motion.span
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: [0, 0.7, 0], y: [-2, -14] }}
-              transition={{ repeat: Infinity, duration: 1.8, ease: 'easeOut' }}
-              className="text-[#B8893A] font-serif text-xs font-bold"
-            >
+          <div className="absolute top-0 inset-x-0 flex justify-center gap-2 pointer-events-none z-10">
+            <span className="text-ink font-serif text-[18px] font-bold opacity-75">
               ~
-            </motion.span>
-            <motion.span
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: [0, 0.8, 0], y: [-2, -16] }}
-              transition={{ repeat: Infinity, duration: 2.1, delay: 0.4, ease: 'easeOut' }}
-              className="text-[#DFB76C] font-serif text-sm font-bold"
-            >
+            </span>
+            <span className="text-ink font-serif text-[18px] font-bold opacity-75">
               ~
-            </motion.span>
-            <motion.span
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: [0, 0.6, 0], y: [-2, -12] }}
-              transition={{ repeat: Infinity, duration: 1.6, delay: 0.8, ease: 'easeOut' }}
-              className="text-[#B8893A] font-serif text-xs font-bold"
-            >
-              ~
-            </motion.span>
+            </span>
           </div>
         )}
 
-        {/* SVG Matte Black Bowl with Brass Rim */}
-        <svg
-          viewBox="0 0 120 80"
-          className="w-24 sm:w-28 h-18 sm:h-20 drop-shadow-md transition-transform duration-300"
-          style={{ transform: `scale(${meta.bowlScale})` }}
-        >
-          <defs>
-            {/* Matte Black cast iron gradient */}
-            <linearGradient id={`matteBlack-${portion}`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#25211B" />
-              <stop offset="50%" stopColor="#17140F" />
-              <stop offset="100%" stopColor="#0E0C09" />
-            </linearGradient>
+        {/* 1. SNACKS & TEA: DHABA CUTTING CHAI CUP & SNACK PLATE */}
+        {normalizedMeal.includes('snack') && (
+          <div className="flex items-end justify-center gap-4 py-1">
+            {/* Dhaba Snack Plate */}
+            <div className="relative flex items-center justify-center">
+              <svg width="68" height="42" viewBox="0 0 68 42" className="overflow-visible">
+                <ellipse cx="34" cy="24" rx="32" ry="14" fill="#14110F" stroke="#14110F" strokeWidth="2" />
+                <ellipse cx="34" cy="23" rx="28" ry="11" fill="#FAF5E8" />
+                {portion === 'Small' && (
+                  <polygon points="34,16 26,28 42,28" fill="#D97706" stroke="#92400E" strokeWidth="1" />
+                )}
+                {portion === 'Regular' && (
+                  <>
+                    <polygon points="30,16 22,28 38,28" fill="#D97706" stroke="#92400E" strokeWidth="1" />
+                    <circle cx="42" cy="24" r="3" fill="#15803D" />
+                  </>
+                )}
+                {portion === 'Large' && (
+                  <>
+                    <polygon points="28,15 20,27 36,27" fill="#D97706" stroke="#92400E" strokeWidth="1" />
+                    <polygon points="38,16 30,28 46,28" fill="#F59E0B" stroke="#92400E" strokeWidth="1" />
+                    <circle cx="48" cy="25" r="3" fill="#DC2626" />
+                  </>
+                )}
+              </svg>
+            </div>
 
-            {/* Brushed Brass Rim Gradient */}
-            <linearGradient id={`brassRim-${portion}`} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#8F6522" />
-              <stop offset="25%" stopColor="#DFB76C" />
-              <stop offset="50%" stopColor="#F5D78E" />
-              <stop offset="75%" stopColor="#B8893A" />
-              <stop offset="100%" stopColor="#7A5217" />
-            </linearGradient>
+            {/* Cutting Chai Glass with relative fill */}
+            <div className="relative flex flex-col items-center">
+              <svg width="34" height="54" viewBox="0 0 34 54" className="overflow-visible">
+                <defs>
+                  <linearGradient id={`chaiGrad-${portion}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#C26A20" />
+                    <stop offset="100%" stopColor="#78350F" />
+                  </linearGradient>
+                </defs>
+                <polygon points="3,4 31,4 27,50 7,50" fill="none" stroke="#14110F" strokeWidth="2" />
+                {/* Chai liquid fill */}
+                {(() => {
+                  const liquidHeight = (fillPercent / 100) * 40;
+                  const topY = 48 - liquidHeight;
+                  const inset = (liquidHeight / 40) * 2;
+                  const leftX = 7 - inset;
+                  const rightX = 27 + inset;
+                  return (
+                    <polygon
+                      points={`${leftX},${topY} ${rightX},${topY} 26,49 8,49`}
+                      fill={`url(#chaiGrad-${portion})`}
+                      opacity="0.9"
+                    />
+                  );
+                })()}
+                {/* Fluted glass lines */}
+                <line x1="12" y1="8" x2="11" y2="46" stroke="#FAF5E8" strokeWidth="1" strokeOpacity="0.6" />
+                <line x1="17" y1="8" x2="17" y2="46" stroke="#FAF5E8" strokeWidth="1.2" strokeOpacity="0.8" />
+                <line x1="22" y1="8" x2="23" y2="46" stroke="#FAF5E8" strokeWidth="1" strokeOpacity="0.6" />
+                <ellipse cx="17" cy="4" rx="14" ry="3" fill="none" stroke="#14110F" strokeWidth="1.5" />
+              </svg>
+            </div>
+          </div>
+        )}
 
-            {/* Rich Food Fill (Golden Spiced Dal / Ghee texture) */}
-            <linearGradient id={`foodGradient-${portion}`} x1="0%" y1="100%" x2="0%" y2="0%">
-              <stop offset="0%" stopColor="#D97706" />
-              <stop offset="60%" stopColor="#F59E0B" />
-              <stop offset="100%" stopColor="#FCD34D" />
-            </linearGradient>
+        {/* 2. BREAKFAST: DHABA BREAKFAST PLATE */}
+        {normalizedMeal.includes('breakfast') && (
+          <div className="flex items-center justify-center py-1">
+            <svg width="100" height="56" viewBox="0 0 100 56" className="overflow-visible">
+              <defs>
+                <linearGradient id={`bfPlateGrad-${portion}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#14110F" />
+                  <stop offset="100%" stopColor="#2A2521" />
+                </linearGradient>
+              </defs>
+              <ellipse cx="50" cy="32" rx="46" ry="18" fill={`url(#bfPlateGrad-${portion})`} stroke="#14110F" strokeWidth="2" />
+              <ellipse cx="50" cy="30" rx="42" ry="15" fill="#FAF5E8" stroke="#14110F" strokeWidth="1.5" />
+              {/* Food layer */}
+              {(() => {
+                const parathaRadiusX = 14 + (fillPercent / 100) * 8;
+                const parathaRadiusY = 6 + (fillPercent / 100) * 3;
+                return (
+                  <ellipse
+                    cx="48"
+                    cy="30"
+                    rx={parathaRadiusX}
+                    ry={parathaRadiusY}
+                    fill="#D97706"
+                    stroke="#92400E"
+                    strokeWidth="1.5"
+                  />
+                );
+              })()}
+              {portion !== 'Small' && <circle cx="30" cy="27" r="5" fill="#DC2626" opacity="0.85" />}
+              {portion === 'Large' && <circle cx="68" cy="27" r="5" fill="#15803D" opacity="0.85" />}
+            </svg>
+          </div>
+        )}
 
-            {/* Inner Bowl Clip Path */}
-            <clipPath id={`bowlClip-${portion}`}>
-              <path d="M 12 28 C 14 56, 30 72, 60 72 C 90 72, 106 56, 108 28 Z" />
-            </clipPath>
-          </defs>
+        {/* 3. LUNCH & DINNER: SIGNATURE KATORI BOWL */}
+        {!normalizedMeal.includes('snack') && !normalizedMeal.includes('breakfast') && (
+          <svg
+            width="110"
+            height="68"
+            viewBox="0 0 120 76"
+            className="overflow-visible"
+            style={{ transform: `scale(${bowlScale})`, transformOrigin: 'center center' }}
+          >
+            <defs>
+              <linearGradient id={`curryGrad-${portion}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#F59E0B" />
+                <stop offset="60%" stopColor="#D97706" />
+                <stop offset="100%" stopColor="#92400E" />
+              </linearGradient>
+            </defs>
 
-          {/* Cast Iron Outer Shell */}
-          <path
-            d="M 10 26 C 12 60, 28 75, 60 75 C 92 75, 108 60, 110 26 Z"
-            fill={`url(#matteBlack-${portion})`}
-            stroke="#14110F"
-            strokeWidth="3"
-            strokeLinejoin="round"
-          />
-
-          {/* Bowl Base Stand (Foot Ring) */}
-          <ellipse
-            cx="60"
-            cy="74"
-            rx="24"
-            ry="4"
-            fill="#14110F"
-          />
-
-          {/* Inner Bowl Cavity with Filling Food */}
-          <g clipPath={`url(#bowlClip-${portion})`}>
-            {/* Dark Bowl Interior */}
-            <rect x="0" y="0" width="120" height="80" fill="#17140F" />
-
-            {/* Food Fill Layer (Visibly rises on selection) */}
-            <rect
-              x="8"
-              y={72 - (fillHeight * 46) / 100}
-              width="104"
-              height="50"
-              fill={`url(#foodGradient-${portion})`}
-              className="transition-all duration-500 ease-out"
+            {/* Bowl Body */}
+            <path
+              d="M 12 26 C 14 56, 38 72, 60 72 C 82 72, 106 56, 108 26 Z"
+              fill="#14110F"
+              stroke="#14110F"
+              strokeWidth="2"
             />
 
-            {/* Food Surface Curvature & Coriander Garnish when selected */}
-            {selected && (
-              <>
-                {/* Food surface highlight */}
-                <ellipse
-                  cx="60"
-                  cy={72 - (fillHeight * 46) / 100}
-                  rx="38"
-                  ry="5"
-                  fill="#FDE68A"
-                  fillOpacity="0.8"
-                  className="transition-all duration-500"
-                />
-                {/* Coriander & Cumin flecks */}
-                <circle cx="50" cy={72 - (fillHeight * 46) / 100 + 2} r="1.5" fill="#2F6B3A" />
-                <circle cx="68" cy={72 - (fillHeight * 46) / 100 + 1} r="1.5" fill="#2F6B3A" />
-                <circle cx="58" cy={72 - (fillHeight * 46) / 100 + 3} r="1.2" fill="#D7312B" />
-                <circle cx="75" cy={72 - (fillHeight * 46) / 100 + 2} r="1" fill="#78350F" />
-              </>
-            )}
-          </g>
+            {/* Rising Curry/Dal Fill */}
+            {(() => {
+              const fillY = 70 - (fillPercent * 44) / 100;
+              const fillRx = 24 + (fillPercent * 24) / 100;
+              const fillRy = 4 + (fillPercent * 5) / 100;
 
-          {/* Brushed Brass Rolled Outer Rim */}
-          <ellipse
-            cx="60"
-            cy="26"
-            rx="50"
-            ry="7.5"
-            fill="none"
-            stroke={`url(#brassRim-${portion})`}
-            strokeWidth="3.5"
-          />
+              return (
+                <g id={`fill-group-${portion}`}>
+                  <path
+                    d={`M ${60 - fillRx} ${fillY} C ${60 - fillRx * 0.8} 68, ${60 + fillRx * 0.8} 68, ${60 + fillRx} ${fillY} Z`}
+                    fill={`url(#curryGrad-${portion})`}
+                  />
+                  <ellipse
+                    cx="60"
+                    cy={fillY}
+                    rx={fillRx}
+                    ry={fillRy}
+                    fill={`url(#curryGrad-${portion})`}
+                    stroke="#D97706"
+                    strokeWidth="1"
+                  />
+                </g>
+              );
+            })()}
 
-          {/* Inner Brass Rim Highlight */}
-          <ellipse
-            cx="60"
-            cy="26"
-            rx="48"
-            ry="6"
-            fill="none"
-            stroke="#14110F"
-            strokeWidth="1.2"
-            strokeOpacity="0.4"
-          />
-        </svg>
+            {/* Brass Outer Rim */}
+            <ellipse cx="60" cy="26" rx="48" ry="7" fill="none" stroke="#D97706" strokeWidth="2.5" />
+          </svg>
+        )}
       </div>
 
-      {/* Portion Information */}
-      <div className="space-y-1 pt-2 border-t-2 border-[#14110F]/15 dark:border-[#F4ECD8]/20">
+      {/* ── PORTION INFORMATION ── */}
+      <div className="space-y-1 pt-3 border-t-2 border-ink/20">
         <div className="flex items-baseline justify-between">
-          <span className="font-mono font-black text-base text-[#14110F] dark:text-[#F4ECD8] uppercase tracking-wide">
+          <span className="font-display text-[24px] font-black uppercase tracking-wide leading-none">
             {portion}
           </span>
-          <span className="font-mono text-[10px] font-bold text-[#F28C1B]">
-            {fillHeight}% Fill
+          <span className="font-mono text-[14px] font-bold">
+            {fillPercent}% Fill
           </span>
         </div>
-        <p className="font-serif text-xs text-[#5C554F] dark:text-[#B8B0A2] leading-tight">
-          {sublabel || meta.desc}
+        <p className="font-serif text-[18px] leading-snug line-clamp-2">
+          {sublabel || title || portion}
         </p>
-        <div className="font-mono text-[10px] text-[#8E857C] dark:text-[#8E857C] pt-0.5">
-          {meta.cal}
+        <div className="font-mono text-[14px] font-bold opacity-80 pt-1">
+          {caloriesLabel || gramsLabel || cal || ''}
         </div>
       </div>
     </button>

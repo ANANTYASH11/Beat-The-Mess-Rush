@@ -13,15 +13,14 @@ export function SteelWeightButton({ kg, isSelected, onClick }: SteelWeightButton
     <button
       type="button"
       onClick={onClick}
-      className={`w-9 h-9 rounded-lg border-2 font-mono text-xs font-black transition-all flex flex-col items-center justify-center leading-none ${
+      className={`min-w-[48px] min-h-[48px] px-2.5 rounded-lg border-2 font-mono text-[14px] font-bold transition-all flex items-center justify-center cursor-pointer ${
         isSelected
-          ? 'bg-[#14110F] text-[#FAF5E8] border-[#14110F] shadow-brutal-xs scale-105'
-          : 'bg-[#EAE1CA] text-[#423933] border-[#14110F]/60 hover:bg-[#DCD0B5] hover:border-[#14110F]'
+          ? 'bg-ink text-bg border-ink'
+          : 'bg-bg text-ink border-ink hover:bg-ink/10'
       }`}
       title={`Record ${kg} kg`}
     >
-      <span>{kg}</span>
-      <span className="text-[8px] opacity-75">kg</span>
+      <span>{kg}kg</span>
     </button>
   );
 }

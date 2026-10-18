@@ -9,25 +9,24 @@ import { Marquee } from '@/components/ui/Marquee';
 import { IntroLetterSection } from '@/components/home/IntroLetterSection';
 import { ScrollStoryPlaceholder } from '@/components/home/ScrollStoryPlaceholder';
 import { LoopDiagram } from '@/components/home/LoopDiagram';
+import { useSelectedMess } from '@/hooks/useSelectedMess';
 import { university } from '@/config/university';
 
 export default function HomePage() {
-  const defaultMess = university.messes[0];
-  const { queue } = useQueueStatus(defaultMess.id);
-  const { forecast } = useForecast(defaultMess.id);
+  const { messId, mess: activeMess } = useSelectedMess();
+  const { queue } = useQueueStatus(messId);
+  const { forecast } = useForecast(messId);
 
   const queueCount = queue?.currentQueue ?? 18;
   const waitRange = queue?.waitRange ?? '5-8 MIN';
-  const expectedPlates = forecast?.expectedPlates ?? Math.round((defaultMess.seats || 350) * 1.2);
+  const expectedPlates = forecast?.expectedPlates ?? Math.round((activeMess.seats || activeMess.demoSeats || 350) * 1.2);
   const crowdStatus = queue?.crowdLevel?.toUpperCase() ?? 'MODERATE';
-  const messLabel = queue?.messName
-    ? queue.messName.toUpperCase()
-    : defaultMess.name.toUpperCase();
+  const messLabel = activeMess.name.toUpperCase();
 
   // Dynamic marquee facts from university config
   const marqueeItems = [
     'UniQ: mess ki line ab online!',
-    `${expectedPlates} PLATES FORECAST AT ${defaultMess.name.toUpperCase()}`,
+    `${expectedPlates} PLATES FORECAST AT ${activeMess.name.toUpperCase()}`,
     `PEAK RUSH AT ${university.peakWindows.lunch} & ${university.peakWindows.dinner}`,
     'PRE-BOOK 15-MIN EXPRESS MEAL SLOTS',
     'WALK-INS ALWAYS ADMITTED WITHOUT PENALTY',

@@ -5,10 +5,11 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 
 import { university } from '@/config/university';
+import { getSession } from '@/lib/auth';
 
 const queueActionSchema = z.object({
   action: z.enum(['CHECKIN', 'WALKIN', 'SERVED', 'DRIFT_ADJUST']),
-  messCode: z.string().default(university.messes[0]?.id || 'central-mess-north'),
+  messCode: z.string().min(1, 'messCode is required'),
   codeOrRoll: z.string().optional(),
   delta: z.number().optional(),
 });
@@ -20,10 +21,36 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const messCode = searchParams.get('messCode') || university.messes[0]?.id || 'central-mess-north';
+  const messCode = searchParams.get('messCode') || searchParams.get('messId');
+
+  if (!messCode) {
+    return NextResponse.json({ error: 'messId parameter is required' }, { status: 400 });
+  }
+
+  const validMess = university.messes.find(
+    (m) => m.id === messCode || m.name.toLowerCase() === messCode.toLowerCase()
+  );
+  if (!validMess) {
+    return NextResponse.json(
+      { error: `Invalid messId: ${messCode}. Does not belong to ${university.name}` },
+      { status: 404 }
+    );
+  }
+
+  // Validate allowed mess for locked staff/kitchen session
+  const session = await getSession();
+  if (session && (session.role === 'staff' || session.role === 'kitchen')) {
+    const lockedMess = session.messId || session.messCode;
+    if (lockedMess && lockedMess !== validMess.id) {
+      return NextResponse.json(
+        { error: `Unauthorized messId: ${messCode}. Role locked to ${lockedMess}` },
+        { status: 403 }
+      );
+    }
+  }
 
   try {
-    const status = await getLiveQueueStatus(messCode);
+    const status = await getLiveQueueStatus(validMess.id);
     return NextResponse.json(status);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error fetching queue status';
@@ -36,20 +63,40 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = queueActionSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid queue action payload' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid queue action payload', details: parsed.error.issues }, { status: 400 });
     }
 
     const { action, messCode, codeOrRoll, delta } = parsed.data;
+
+    const validMess = university.messes.find(
+      (m) => m.id === messCode || m.name.toLowerCase() === messCode.toLowerCase()
+    );
+    if (!validMess) {
+      return NextResponse.json({ error: `Mess not found: ${messCode}` }, { status: 404 });
+    }
+
+    // Validate role permissions
+    const session = await getSession();
+    if (session && (session.role === 'staff' || session.role === 'kitchen')) {
+      const lockedMess = session.messId || session.messCode;
+      if (lockedMess && lockedMess !== validMess.id) {
+        return NextResponse.json(
+          { error: `Unauthorized mess: ${messCode}. Account locked to ${lockedMess}` },
+          { status: 403 }
+        );
+      }
+    }
+
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
     const hour = now.getHours();
     const mealType = hour >= 16 || hour < 4 ? 'Dinner' : 'Lunch';
 
     const mess = await prisma.mess.findFirst({
-      where: { code: messCode },
+      where: { code: validMess.id },
     });
     if (!mess) {
-      return NextResponse.json({ error: 'Mess not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Mess not found in database' }, { status: 404 });
     }
 
     let message = '';
