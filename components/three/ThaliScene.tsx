@@ -23,14 +23,16 @@ interface ThaliSceneProps {
 function AnimatedThaliGroup({
   children,
   scale = 0.93,
+  animate = true,
 }: {
   children: React.ReactNode;
   scale?: number;
+  animate?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
-    if (!groupRef.current) return;
+    if (!groupRef.current || !animate) return;
     const time = state.clock.getElapsedTime();
     // Idle gentle plate rock +/-1 degree (~0.017 rad)
     groupRef.current.rotation.z = Math.sin(time * 0.7) * 0.017;
@@ -97,7 +99,10 @@ export function ThaliScene({
 
     try {
       const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      const gl =
+        canvas.getContext('webgl2') ||
+        canvas.getContext('webgl') ||
+        canvas.getContext('experimental-webgl');
       if (!gl) setHasWebGL(false);
     } catch {
       setHasWebGL(false);
@@ -132,7 +137,7 @@ export function ThaliScene({
     );
   }
 
-  if (prefersReducedMotion || !hasWebGL) {
+  if (!hasWebGL) {
     return fallback;
   }
 
@@ -252,7 +257,7 @@ export function ThaliScene({
 
           {/* ── Animated Thali Assembly with +/-1 deg idle rock ── */}
           <Suspense fallback={null}>
-            <AnimatedThaliGroup scale={isMobile ? 0.96 : 1.02}>
+            <AnimatedThaliGroup scale={isMobile ? 0.96 : 1.02} animate={!prefersReducedMotion}>
               <Thali
                 queueCount={queueCount}
                 waitRange={waitRange}
