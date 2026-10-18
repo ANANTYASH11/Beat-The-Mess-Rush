@@ -30,6 +30,9 @@ yarn-error.log*
 
 # SQLite databases
 prisma/*.db
+!prisma/dev.db
 prisma/*.db-journal
 *.db
+!prisma/dev.db
 *.sqlite
+.vercel

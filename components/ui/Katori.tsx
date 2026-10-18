@@ -61,8 +61,8 @@ export function Katori({
       aria-pressed={selected}
       className={`relative w-full text-left p-4 sm:p-5 rounded-2xl border-[3px] transition-all flex flex-col justify-between select-none ${
         selected
-          ? 'bg-[#FAF5E8] dark:bg-[#25201C] border-[#14110F] dark:border-[#F4ECD8] shadow-brutal-md -translate-y-1 ring-2 ring-[#F28C1B]'
-          : 'bg-[#F4ECD8] dark:bg-[#1E1916] border-[#14110F]/80 dark:border-[#F4ECD8]/40 hover:-translate-y-0.5 hover:shadow-brutal-xs opacity-90 hover:opacity-100'
+          ? 'bg-[#FAF5E8] dark:bg-[#221D18] border-[#14110F] dark:border-[#F4ECD8] shadow-offset-md -translate-y-1 ring-2 ring-[#F28C1B]'
+          : 'bg-[#F4ECD8] dark:bg-[#1A1613] border-[#14110F]/80 dark:border-[#F4ECD8]/40 hover:-translate-y-0.5 hover:shadow-offset-xs opacity-90 hover:opacity-100'
       }`}
     >
       {/* Selection Stamp Tag */}

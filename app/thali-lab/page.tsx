@@ -19,13 +19,16 @@ const ThaliScene = dynamic(
   }
 );
 
+import { university } from '@/config/university';
+
 export function ThaliLabPage() {
-  const { queue } = useQueueStatus('mess-1');
-  const { forecast } = useForecast('mess-1');
+  const defaultMessId = university.messes[0]?.id || 'central-mess-north';
+  const { queue } = useQueueStatus(defaultMessId);
+  const { forecast } = useForecast(defaultMessId);
 
   const queueCount = queue?.currentQueue ?? 20;
   const waitRange = queue?.waitRange ?? '6-11 min';
-  const expectedPlates = forecast?.targetPlates ?? 342;
+  const expectedPlates = forecast?.expectedPlates ?? 342;
   const wasteSavedKg = 42;
 
   return (

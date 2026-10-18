@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { university, generateSlotsForMeal } from '@/config/university';
 
 export interface LiveQueueResult {
   messId: string;
@@ -55,7 +56,7 @@ export async function markExpiredNoShows(todayStr: string) {
   }
 }
 
-export async function getLiveQueueStatus(messCode = 'mess-1'): Promise<LiveQueueResult> {
+export async function getLiveQueueStatus(messCode = university.messes[0]?.id || 'central-mess-north'): Promise<LiveQueueResult> {
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
 
@@ -63,13 +64,14 @@ export async function getLiveQueueStatus(messCode = 'mess-1'): Promise<LiveQueue
   await markExpiredNoShows(todayStr);
 
   // 1. Get Mess
+  const defaultMess = university.messes[0];
   const mess = await prisma.mess.findFirst({
     where: { code: messCode },
   }) || await prisma.mess.findFirst() || {
     id: 'default',
-    code: 'mess-1',
-    name: 'North Hostel Mess',
-    capacity: 220,
+    code: defaultMess.id,
+    name: defaultMess.name,
+    capacity: defaultMess.seats,
     queueLowThresh: 15,
     queueHighThresh: 35,
   };
@@ -152,19 +154,22 @@ export async function getLiveQueueStatus(messCode = 'mess-1'): Promise<LiveQueue
     crowdLevel = 'High';
   }
 
-  // Curve of wait by time of day
-  const timeCurve = [
-    { time: '12:30', wait: '3-5 min', queue: 8, label: 'Quiet' },
-    { time: '12:45', wait: '6-9 min', queue: 18, label: 'Moderate' },
-    { time: '13:00', wait: '12-16 min', queue: 38, label: 'Peak Rush' },
-    { time: '13:15', wait: '10-14 min', queue: 31, label: 'Busy' },
-    { time: '13:30', wait: '5-8 min', queue: 16, label: 'Moderate' },
-    { time: '13:45', wait: '2-4 min', queue: 6, label: 'Quiet' },
-  ];
+  // Curve of wait by time of day generated dynamically from meal slots
+  const lunchSlots = generateSlotsForMeal('Lunch').slice(0, 6);
+  const timeCurve = lunchSlots.map((slot, idx) => {
+    const isPeak = slot === university.peakWindows.lunch;
+    const isQuiet = idx === 0 || idx === lunchSlots.length - 1;
+    return {
+      time: slot,
+      wait: isPeak ? '12-16 min' : (isQuiet ? '3-5 min' : '6-9 min'),
+      queue: isPeak ? 38 : (isQuiet ? 8 : 18),
+      label: isPeak ? 'Peak Rush' : (isQuiet ? 'Quiet' : 'Moderate'),
+    };
+  });
 
   // Satellite Mess comparison
   const otherMess = await prisma.mess.findFirst({
-    where: { code: mess.code === 'mess-1' ? 'mess-2' : 'mess-1' },
+    where: { code: { not: mess.code } },
   });
 
   return {

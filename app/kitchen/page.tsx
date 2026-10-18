@@ -22,11 +22,19 @@ import { SteelWeightButton } from '@/components/ui/SteelWeightButton';
 import { FillingWasteBin } from '@/components/ui/FillingWasteBin';
 import { playDhabaSound } from '@/components/ui/CraftedInteractions';
 import AttendanceChart from '@/components/AttendanceChart';
+import { university } from '@/config/university';
+import { CompareMessesTable } from '@/components/mess/CompareMessesTable';
+import { UniQInsightsPanel } from '@/components/insights/UniQInsightsPanel';
 
 export default function KitchenPage() {
-  const [activeTab, setActiveTab] = useState<'forecast' | 'waste' | 'reports'>('forecast');
-  const [messCode, setMessCode] = useState('mess-1');
-  const [mealType, setMealType] = useState<'Lunch' | 'Dinner'>('Lunch');
+  const [activeTab, setActiveTab] = useState<'forecast' | 'waste' | 'reports' | 'compare'>('forecast');
+  const [messCode, setMessCode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('uniq_selected_mess') || university.messes[0].id;
+    }
+    return university.messes[0].id;
+  });
+  const [mealType, setMealType] = useState<'Breakfast' | 'Lunch' | 'Snacks' | 'Dinner'>('Lunch');
   const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
 
   // Hook for blended forecast
@@ -38,16 +46,15 @@ export default function KitchenPage() {
   const [safetyBufferPct, setSafetyBufferPct] = useState(8);
   const [savingConfig, setSavingConfig] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const [showDrivers, setShowDrivers] = useState(false);
 
   // 30-Second Waste Logger state
   const [dishLeftovers, setDishLeftovers] = useState<Record<string, number>>({});
   const [plateWasteTotalKg, setPlateWasteTotalKg] = useState(28);
-  const [actualPlates, setActualPlates] = useState(495);
+  const [actualPlates, setActualPlates] = useState(Math.round((university.messes[0].seats || 350) * 1.15));
   const [wasteSuccessMsg, setWasteSuccessMsg] = useState('');
   const [surplusNotice, setSurplusNotice] = useState<{ kg: number; message: string } | null>(null);
-  const [ngoContactInput, setNgoContactInput] = useState(
-    'Robin Hood Army Campus Chapter (+91 98765 43210)'
-  );
+  const [ngoContactInput, setNgoContactInput] = useState(university.ngoContact);
 
   // Reports state
   const [reportsData, setReportsData] = useState<any>(null);
@@ -178,7 +185,7 @@ export default function KitchenPage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="font-mono text-[10px] font-black uppercase tracking-widest bg-[#14110F] text-[#FAF5E8] px-2.5 py-0.5 rounded">
-                KITCHEN HEADQUARTERS
+                UniQ KITCHEN HEADQUARTERS
               </span>
               <span className="font-serif italic text-xs text-[#5C554F]">
                 रसोई उत्पादन एवं अपशिष्ट
@@ -236,12 +243,26 @@ export default function KitchenPage() {
             >
               CSV REPORTS
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('compare');
+                playDhabaSound('press');
+              }}
+              className={`px-4 py-2 font-display text-base tracking-wider uppercase rounded-lg border-2 transition-all ${
+                activeTab === 'compare'
+                  ? 'bg-[#14110F] text-[#FAF5E8] border-[#14110F] shadow-brutal-xs -translate-y-0.5'
+                  : 'bg-transparent text-[#5C554F] border-transparent hover:text-[#14110F]'
+              }`}
+            >
+              COMPARE MESSES (19)
+            </button>
           </div>
         </div>
 
         {/* Date & Meal Filter Strip */}
         <div className="flex flex-wrap items-center justify-between gap-3 mt-6 pt-4 border-t-2 border-[#14110F]/15 font-mono text-xs">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-1.5 bg-[#FAF5E8] border-2 border-[#14110F] px-2.5 py-1 rounded-lg">
               <Calendar className="w-4 h-4 text-[#F28C1B]" />
               <input
@@ -252,8 +273,8 @@ export default function KitchenPage() {
               />
             </div>
 
-            <div className="flex gap-1">
-              {(['Lunch', 'Dinner'] as const).map((m) => (
+            <div className="flex gap-1 flex-wrap">
+              {(['Breakfast', 'Lunch', 'Snacks', 'Dinner'] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
@@ -273,8 +294,13 @@ export default function KitchenPage() {
             </div>
           </div>
 
-          <div className="font-mono text-xs font-bold text-[#5C554F]">
-            BASELINE: {forecast?.historicalAvgPlates ?? 505} PLATES (4-WEEK ROLLING)
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="font-mono text-xs font-bold text-[#5C554F]">
+              BASELINE: {forecast?.historicalAvgPlates ?? (mealType === 'Snacks' ? 320 : 505)} PLATES
+            </div>
+            <span className="font-mono text-[11px] bg-saffron/20 border border-[#14110F]/40 text-[#14110F] px-2.5 py-0.5 rounded font-bold">
+              {forecast?.planSplitLabel || `${mealType}: 62% of students on a plan with ${mealType.toLowerCase()} (assumption)`}
+            </span>
           </div>
         </div>
       </div>
@@ -287,15 +313,78 @@ export default function KitchenPage() {
             {/* Paper Order Slip for Headcount */}
             <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 shadow-brutal-md relative rotate-[-0.5deg]">
               <div className="perforated-strip -mt-3 mb-3" />
-              <div className="font-mono text-[10px] font-black uppercase text-[#5C554F] tracking-widest">
-                KITCHEN PRODUCTION SLIP
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-mono text-[10px] font-black uppercase text-[#5C554F] tracking-widest">
+                  KITCHEN PRODUCTION SLIP
+                </div>
+                {forecast?.isMlActive ? (
+                  <span className="font-mono text-[9px] bg-[#F28C1B]/20 text-[#14110F] border border-[#14110F]/30 px-2 py-0.5 rounded font-black uppercase">
+                    ML 10th–90th Range
+                  </span>
+                ) : (
+                  <span className="font-mono text-[9px] bg-[#FAF5E8] text-[#5C554F] border border-[#14110F]/20 px-2 py-0.5 rounded font-bold">
+                    Using baseline forecast
+                  </span>
+                )}
               </div>
-              <div className="font-display text-5xl sm:text-6xl font-black text-[#F28C1B] leading-none my-2">
-                {forecast?.expectedPlates ?? 495}
+
+              {forecast?.mlRange ? (
+                <div className="my-2 space-y-1">
+                  <div className="font-display text-4xl sm:text-5xl font-black text-[#F28C1B] leading-none">
+                    {forecast.mlRange.label}
+                  </div>
+                  <div className="font-mono text-xs text-[#5C554F] font-bold">
+                    Point Estimate: ~{forecast.expectedPlates} plates
+                  </div>
+                  <div className="font-mono text-[11px] text-[#78716C] border-b border-[#14110F]/15 pb-2">
+                    Baseline: {forecast.baselinePlates ?? forecast.historicalAvgPlates} plates (TypeScript fallback)
+                  </div>
+                </div>
+              ) : (
+                <div className="font-display text-5xl sm:text-6xl font-black text-[#F28C1B] leading-none my-2">
+                  {forecast?.expectedPlates ?? 495}
+                </div>
+              )}
+
+              <div className="font-display text-lg text-[#14110F] uppercase flex items-center justify-between mt-2">
+                <span>TARGET PLATES FOR {mealType}</span>
+                {forecast?.mlTopDrivers && forecast.mlTopDrivers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDrivers(!showDrivers)}
+                    className="font-mono text-xs lowercase text-[#5C554F] hover:text-[#F28C1B] underline font-bold"
+                  >
+                    {showDrivers ? 'hide why' : 'why?'}
+                  </button>
+                )}
               </div>
-              <div className="font-display text-lg text-[#14110F] uppercase">
-                TARGET PLATES FOR {mealType}
-              </div>
+
+              {/* Drivers Popover / Panel */}
+              {showDrivers && forecast?.mlTopDrivers && (
+                <div className="mt-3 p-3 bg-[#14110F] text-[#FAF5E8] rounded-xl border border-[#14110F] space-y-2 font-mono text-xs">
+                  <div className="flex items-center justify-between text-[10px] text-[#A39B8F] uppercase tracking-wider font-bold">
+                    <span>Top Model Drivers</span>
+                    <span>Importance</span>
+                  </div>
+                  {forecast.mlTopDrivers.slice(0, 3).map((driver, idx) => (
+                    <div key={idx} className="space-y-0.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span>• {driver.label}</span>
+                        <span className="text-[#F28C1B] font-bold">{driver.weight}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#F28C1B]"
+                          style={{
+                            width: `${Math.min(100, Math.max(15, (driver.weight / (forecast.mlTopDrivers?.[0]?.weight || 500)) * 100))}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="mt-4 pt-3 border-t-2 border-dashed border-[#14110F] flex items-center justify-between font-mono text-xs">
                 <span>PRE-BOOKED: {forecast?.bookedPlates ?? 185}</span>
                 <span className="font-bold text-[#2F6B3A]">
@@ -374,6 +463,15 @@ export default function KitchenPage() {
               </TactileButton>
             </div>
           </div>
+
+          {/* UniQ Insights: Kitchen Batching & Waste Suggestions */}
+          <UniQInsightsPanel
+            target="KITCHEN"
+            messCode={messCode}
+            dateStr={dateStr}
+            mealType={mealType}
+            className="my-1"
+          />
 
           {/* Wall Chalkboard Menu Board for Dishes */}
           <div className="chalkboard-panel p-6 sm:p-8 space-y-6 relative overflow-hidden">
@@ -656,6 +754,9 @@ export default function KitchenPage() {
           </div>
         </div>
       )}
+
+      {/* 4. TAB 4: COMPARE MESSES (19 MESSES PLATFORM TABLE) */}
+      {activeTab === 'compare' && <CompareMessesTable />}
     </div>
   );
 }

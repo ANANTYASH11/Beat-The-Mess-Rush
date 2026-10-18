@@ -7,18 +7,35 @@ import { TactileButton } from '@/components/ui/TactileButton';
 import { StampBadge } from '@/components/ui/StampBadge';
 import { ThaliOutlineIcon } from '@/components/ui/DhabaIcons';
 import { playDhabaSound } from '@/components/ui/CraftedInteractions';
+import { university } from '@/config/university';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get('next');
-  const initialRole = (searchParams.get('role') as any) || 'student';
+  const roleParam = searchParams.get('role');
+  const initialRole = (roleParam as any) || (nextUrl?.includes('kitchen') ? 'kitchen' : nextUrl?.includes('staff') ? 'staff' : 'student');
 
   const [role, setRole] = useState<'student' | 'staff' | 'kitchen' | 'admin'>(initialRole);
-  const [rollNumber, setRollNumber] = useState('22CS014');
-  const [pin, setPin] = useState('');
+  const [rollNumber, setRollNumber] = useState(university.rollNumberExample);
+  const [pin, setPin] = useState(initialRole === 'kitchen' ? '5678' : initialRole === 'staff' ? '1234' : '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    const r = searchParams.get('role');
+    const target = r || (nextUrl?.includes('kitchen') ? 'kitchen' : nextUrl?.includes('staff') ? 'staff' : null);
+    if (target === 'kitchen') {
+      setRole('kitchen');
+      setPin('5678');
+    } else if (target === 'staff') {
+      setRole('staff');
+      setPin('1234');
+    } else if (target === 'student') {
+      setRole('student');
+      setPin('');
+    }
+  }, [searchParams, nextUrl]);
 
   const executeLogin = async (targetRole: string, targetRoll: string, targetPin: string) => {
     setError('');
@@ -68,9 +85,9 @@ function LoginForm() {
     playDhabaSound('press');
     setRole(presetRole);
     if (presetRole === 'student') {
-      setRollNumber('22CS014');
+      setRollNumber(university.rollNumberExample);
       setPin('');
-      executeLogin('student', '22CS014', '');
+      executeLogin('student', university.rollNumberExample, '');
     } else if (presetRole === 'staff') {
       setPin('1234');
       executeLogin('staff', '', '1234');
@@ -217,7 +234,7 @@ function LoginForm() {
               onClick={() => handlePreset('student')}
               className="px-3 py-1.5 bg-[#FAF5E8] text-[#14110F] text-xs font-mono font-bold rounded-lg border-2 border-[#14110F] hover:bg-[#F28C1B] transition shadow-brutal-xs"
             >
-              Demo Student (22CS014)
+              Demo Student ({university.rollNumberExample})
             </button>
             <button
               type="button"

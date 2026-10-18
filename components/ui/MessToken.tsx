@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { motion } from 'framer-motion';
+import { university } from '@/config/university';
 
 export function triggerRiceChilliConfetti() {
   if (typeof window === 'undefined') return;
@@ -74,7 +75,7 @@ export function MessToken({
   meal,
   portion,
   dietType,
-  rollNumber = '22CS014',
+  rollNumber = university.rollNumberExample,
   onEdit,
   onSkip,
 }: MessTokenProps) {
@@ -85,15 +86,15 @@ export function MessToken({
   const tokenNum =
     tokenNumber ??
     booking?.tokenNumber ??
-    (booking?.checkinCode ? parseInt(booking.checkinCode.slice(-2), 10) : 47) ??
-    47;
+    (booking?.checkinCode ? parseInt(booking.checkinCode.slice(-2), 10) : 12) ??
+    12;
   const pin =
     fourDigitCode ??
     booking?.checkinCode ??
     '8492';
   const slot =
     slotTime ??
-    (booking?.slotStart ? `${booking.slotStart} - ${booking.slotEnd || ''}` : '12:30 - 12:45');
+    (booking?.slotStart ? `${booking.slotStart} - ${booking.slotEnd || ''}` : `${university.meals[1]?.start || '12:30'} - 12:45`);
   const mealName = meal ?? booking?.mealType ?? 'Lunch';
   const portionName = portion ?? booking?.portion ?? 'Regular';
   const diet = dietType ?? booking?.dietType ?? 'Veg';
@@ -125,7 +126,7 @@ export function MessToken({
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#B8893A] border border-[#14110F]" />
             <span className="font-mono text-[9px] font-black uppercase tracking-widest text-[#D4CEC5]">
-              AUTOMATIC TOKEN DISPENSER • MODEL T-47
+              AUTOMATIC TOKEN DISPENSER • MODEL EXP-1
             </span>
           </div>
           <span className="font-mono text-[9px] font-bold text-[#F28C1B] uppercase">
@@ -152,59 +153,59 @@ export function MessToken({
             y: { type: 'spring', damping: 20, stiffness: 220 },
             x: { duration: 0.35 },
           }}
-          className="bg-[#FAF5E8] border-[3px] border-[#14110F] dark:border-[#F4ECD8] rounded-b-2xl shadow-brutal-xl relative overflow-hidden text-[#14110F]"
+          className="bg-[#FAF5E8] dark:bg-[#221D18] border-[3px] border-[#14110F] dark:border-[#F4ECD8] rounded-b-2xl shadow-offset-xl relative overflow-hidden text-[#14110F] dark:text-[#F4ECD8]"
         >
           {/* Punched Hole at Top Left */}
           <div
             aria-label="Punched Hole"
-            className="absolute top-4 left-4 w-5 h-5 rounded-full bg-[#F4ECD8] border-2 border-[#14110F] shadow-inner z-10"
+            className="absolute top-4 left-4 w-5 h-5 rounded-full bg-[#F4ECD8] dark:bg-[#1A1613] border-2 border-[#14110F] dark:border-[#F4ECD8] shadow-inner z-10"
           />
 
           {/* Ticket Header */}
           <div className="bg-[#F28C1B] border-b-[3px] border-[#14110F] px-4 py-3 pl-12 flex items-center justify-between gap-2">
             <div className="min-w-0">
               <span className="font-mono text-[8px] sm:text-[9px] font-black uppercase tracking-widest block text-[#14110F]/80 truncate">
-                CAMPUS MESS BOARDING PASS
+                UniQ TOKEN • BOARDING PASS
               </span>
               <h2 className="font-condensed text-xl sm:text-2xl font-black text-[#14110F] tracking-wide uppercase leading-none mt-0.5 whitespace-nowrap">
                 {mealName} ENTRY
               </h2>
             </div>
-            <div className="text-right shrink-0 bg-[#FAF5E8] border-2 border-[#14110F] px-2.5 py-1 rounded-lg shadow-brutal-xs">
-              <span className="font-mono text-[8px] font-black uppercase text-[#5C554F] block leading-none">
-                TOKEN
+            <div className="text-right shrink-0 bg-[#FAF5E8] dark:bg-[#1A1613] border-2 border-[#14110F] dark:border-[#F4ECD8] px-2.5 py-1 rounded-lg shadow-offset-xs">
+              <span className="font-mono text-[8px] font-black uppercase text-[#5C554F] dark:text-[#B8B0A2] block leading-none">
+                UniQ TOKEN
               </span>
-              <span className="font-mono text-lg sm:text-xl font-black text-[#14110F] leading-tight block">
-                Token {tokenNum}
+              <span className="font-mono text-lg sm:text-xl font-black text-[#14110F] dark:text-[#F4ECD8] leading-tight block">
+                #{tokenNum}
               </span>
             </div>
           </div>
 
           {/* Perforated Divider with Side Notches */}
           <div className="relative py-2 px-4 flex items-center justify-between">
-            <div className="w-5 h-5 rounded-full bg-[#F4ECD8] -ml-7 border-2 border-[#14110F]" />
-            <div className="w-full border-b-2 border-dashed border-[#14110F]/40 mx-2" />
-            <div className="w-5 h-5 rounded-full bg-[#F4ECD8] -mr-7 border-2 border-[#14110F]" />
+            <div className="w-5 h-5 rounded-full bg-[#F4ECD8] dark:bg-[#1A1613] -ml-7 border-2 border-[#14110F] dark:border-[#F4ECD8]" />
+            <div className="w-full border-b-2 border-dashed border-[#14110F]/40 dark:border-[#F4ECD8]/40 mx-2" />
+            <div className="w-5 h-5 rounded-full bg-[#F4ECD8] dark:bg-[#1A1613] -mr-7 border-2 border-[#14110F] dark:border-[#F4ECD8]" />
           </div>
 
           {/* Ticket Details Body in Plex Mono */}
           <div className="p-5 sm:p-6 pt-1 space-y-4 font-mono">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-[#EFE7D0] p-3 rounded-xl border-2 border-[#14110F]/20">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-[#EFE7D0] dark:bg-[#1A1613] p-3 rounded-xl border-2 border-[#14110F]/20 dark:border-[#F4ECD8]/20">
               <div>
-                <span className="text-[10px] text-[#5C554F] block">ROLL NO:</span>
-                <span className="font-black text-[#14110F]">{rollNumber}</span>
+                <span className="text-[10px] text-[#5C554F] dark:text-[#B8B0A2] block">ROLL NO:</span>
+                <span className="font-black text-[#14110F] dark:text-[#F4ECD8]">{rollNumber}</span>
               </div>
               <div>
-                <span className="text-[10px] text-[#5C554F] block">SLOT:</span>
-                <span className="font-black text-[#14110F]">{slot}</span>
+                <span className="text-[10px] text-[#5C554F] dark:text-[#B8B0A2] block">SLOT:</span>
+                <span className="font-black text-[#14110F] dark:text-[#F4ECD8]">{slot}</span>
               </div>
               <div>
-                <span className="text-[10px] text-[#5C554F] block">PORTION:</span>
-                <span className="font-black text-[#14110F]">{portionName}</span>
+                <span className="text-[10px] text-[#5C554F] dark:text-[#B8B0A2] block">PORTION:</span>
+                <span className="font-black text-[#14110F] dark:text-[#F4ECD8]">{portionName}</span>
               </div>
               <div>
-                <span className="text-[10px] text-[#5C554F] block">DIET:</span>
-                <span className="font-black text-[#14110F]">{diet}</span>
+                <span className="text-[10px] text-[#5C554F] dark:text-[#B8B0A2] block">DIET:</span>
+                <span className="font-black text-[#14110F] dark:text-[#F4ECD8]">{diet}</span>
               </div>
             </div>
 
@@ -212,14 +213,14 @@ export function MessToken({
             <div className="flex items-center justify-between gap-4 pt-2">
               <div className="space-y-2">
                 <div>
-                  <span className="text-[10px] font-black tracking-wider text-[#5C554F] uppercase block">
+                  <span className="text-[10px] font-black tracking-wider text-[#5C554F] dark:text-[#B8B0A2] uppercase block">
                     COUNTER 4-DIGIT VERIFICATION PIN
                   </span>
-                  <div className="font-mono text-4xl sm:text-5xl font-black tracking-widest text-[#14110F] leading-none mt-1">
+                  <div className="font-mono text-4xl sm:text-5xl font-black tracking-widest text-[#14110F] dark:text-[#F4ECD8] leading-none mt-1">
                     PIN: {pin}
                   </div>
                 </div>
-                <p className="text-[11px] text-[#5C554F] leading-tight max-w-[240px]">
+                <p className="text-[11px] text-[#5C554F] dark:text-[#B8B0A2] leading-tight max-w-[240px]">
                   Show QR to scanner at Turnstile #1 or speak PIN to the mess warden.
                 </p>
                 <div className="text-[10px] text-[#8E857C]">
@@ -228,7 +229,7 @@ export function MessToken({
               </div>
 
               {/* QR Code Container */}
-              <div className="w-28 sm:w-32 h-28 sm:h-32 p-2 bg-white border-[2.5px] border-[#14110F] rounded-xl shadow-brutal-xs shrink-0 flex items-center justify-center">
+              <div className="w-28 sm:w-32 h-28 sm:h-32 p-2 bg-white border-[2.5px] border-[#14110F] rounded-xl shadow-offset-xs shrink-0 flex items-center justify-center">
                 {qrDataUrl ? (
                   <img
                     src={qrDataUrl}
@@ -244,7 +245,7 @@ export function MessToken({
             </div>
 
             {/* Perforated Divider 2 */}
-            <div className="border-b-2 border-dashed border-[#14110F]/30 pt-1" />
+            <div className="border-b-2 border-dashed border-[#14110F]/30 dark:border-[#F4ECD8]/30 pt-1" />
 
             {/* Barcode Strip */}
             <div className="pt-1 flex flex-col items-center">
@@ -256,13 +257,13 @@ export function MessToken({
                 ].map((width, idx) => (
                   <span
                     key={idx}
-                    className="bg-[#14110F] h-full"
+                    className="bg-[#14110F] dark:bg-[#F4ECD8] h-full"
                     style={{ width: `${width}px` }}
                   />
                 ))}
               </div>
-              <span className="font-mono text-[9px] font-bold text-[#5C554F] tracking-widest mt-0.5">
-                *MR-PASS-{dateStr.replace(/-/g, '')}-{tokenNum}-{pin}*
+              <span className="font-mono text-[9px] font-bold text-[#5C554F] dark:text-[#B8B0A2] tracking-widest mt-0.5">
+                *UNIQ-PASS-{dateStr.replace(/-/g, '')}-{tokenNum}-{pin}*
               </span>
             </div>
 

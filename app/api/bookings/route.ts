@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
+import { university, generateSlotsForMeal, getSlotEnd, isValidRollNumber } from '@/config/university';
 
 const bookingSchema = z.object({
   rollNumber: z.string().min(1),
-  messCode: z.string().default('mess-1'),
-  mealType: z.enum(['Lunch', 'Dinner']),
+  messCode: z.string().default('central-mess-north'),
+  mealType: z.enum(['Breakfast', 'Lunch', 'Snacks', 'Dinner']),
   slotStart: z.string().optional(),
   portion: z.enum(['Small', 'Regular', 'Large']).default('Regular'),
   dietType: z.string().default('Veg'),
@@ -33,9 +34,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Mess not found' }, { status: 404 });
     }
 
-    const slots = mealType === 'Lunch'
-      ? ['12:30', '12:45', '13:00', '13:15', '13:30', '13:45']
-      : ['19:30', '19:45', '20:00', '20:15', '20:30', '20:45'];
+    const slots = generateSlotsForMeal(mealType);
 
     // Current bookings per slot
     const bookings = await prisma.slotBooking.findMany({
@@ -58,11 +57,12 @@ export async function GET(req: NextRequest) {
     let minProjected = Infinity;
     let suggestedSlot = slots[0];
 
-    const slotStatuses = slots.map((slot) => {
+    const slotStatuses = slots.map((slot, sIdx) => {
       const booked = counts[slot] || 0;
       // Historical average baseline
-      const isPeak = slot.includes('13:00') || slot.includes('20:15');
-      const histAvg = isPeak ? 65 : (slot.includes('12:30') || slot.includes('20:45') ? 22 : 38);
+      const isPeak = slot === university.peakWindows.lunch || slot === university.peakWindows.dinner;
+      const isFirstOrLast = sIdx === 0 || sIdx === slots.length - 1;
+      const histAvg = isPeak ? 65 : (isFirstOrLast ? 22 : 38);
       const projected = Math.round(booked + histAvg * 0.45);
 
       if (projected < minProjected) {
@@ -106,6 +106,7 @@ export async function GET(req: NextRequest) {
     if (rollNumber) {
       const student = await prisma.student.findUnique({
         where: { rollNumber },
+        include: { mealPlan: true },
       });
       if (student) {
         studentData = student;
@@ -148,6 +149,12 @@ export async function POST(req: NextRequest) {
 
     const { rollNumber, messCode, mealType, slotStart, portion, dietType, isSkipping } = parsed.data;
     const cleanRoll = rollNumber.trim().toUpperCase();
+    if (!isValidRollNumber(cleanRoll)) {
+      return NextResponse.json(
+        { error: `Invalid roll number. Must match format e.g. ${university.rollNumberExample}` },
+        { status: 400 }
+      );
+    }
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
 
@@ -158,20 +165,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Mess not found' }, { status: 404 });
     }
 
-    // Ensure student exists
+    // Ensure student exists (privacy-safe: only roll number, no personal names or photos)
     let student = await prisma.student.findUnique({
       where: { rollNumber: cleanRoll },
+      include: { mealPlan: true },
     });
     if (!student) {
       student = await prisma.student.create({
         data: {
           rollNumber: cleanRoll,
           name: `Student ${cleanRoll}`,
-          hostel: 'Block A',
+          hostel: university.messes[0].hostel,
           dietPref: dietType,
           streak: 0,
         },
+        include: { mealPlan: true },
       });
+    }
+
+    // Enforce student meal plan restriction
+    if (student?.mealPlan) {
+      try {
+        const allowedMeals: string[] = JSON.parse(student.mealPlan.meals);
+        if (!allowedMeals.includes(mealType)) {
+          return NextResponse.json(
+            { error: `Your ${student.mealPlan.name} meal plan does not include ${mealType}.` },
+            { status: 403 }
+          );
+        }
+      } catch {
+        // fallback
+      }
     }
 
     if (isSkipping) {
@@ -191,8 +215,8 @@ export async function POST(req: NextRequest) {
           messId: mess.id,
           date: dateStr,
           mealType,
-          slotStart: slotStart || '12:30',
-          slotEnd: '12:45',
+          slotStart: slotStart || 'SKIP',
+          slotEnd: 'SKIP',
           portion,
           dietType,
           status: 'SKIPPED',
@@ -211,14 +235,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Arrival slot is required' }, { status: 400 });
     }
 
-    const [h, m] = slotStart.split(':').map(Number);
-    const endM = (m + 15) % 60;
-    const endH = m + 15 >= 60 ? h + 1 : h;
-    const slotEndStr = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+    const slotEndStr = getSlotEnd(slotStart);
+    const mealSlots = generateSlotsForMeal(mealType);
+    const isOffPeak = slotStart === mealSlots[0] || slotStart === mealSlots[mealSlots.length - 1];
 
     // Generate unique 4-digit check-in code
     const checkinCode = (1000 + Math.floor(Math.random() * 9000)).toString();
-    const isOffPeak = slotStart === '12:30' || slotStart === '13:45' || slotStart === '19:30' || slotStart === '20:45';
 
     const booking = await prisma.slotBooking.upsert({
       where: {
@@ -253,17 +275,19 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    let streakCount = student.streak;
     if (isOffPeak) {
-      student = await prisma.student.update({
+      const updated = await prisma.student.update({
         where: { id: student.id },
         data: { streak: { increment: 1 } },
       });
+      streakCount = updated.streak;
     }
 
     return NextResponse.json({
       success: true,
       booking,
-      streak: student.streak,
+      streak: streakCount,
       isOffPeak,
     });
   } catch (err: unknown) {

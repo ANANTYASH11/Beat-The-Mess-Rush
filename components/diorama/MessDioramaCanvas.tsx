@@ -9,6 +9,7 @@ import { Counter } from './Counter';
 import { QueueCrowd } from './QueueCrowd';
 import { DiningStudents } from './DiningStudents';
 import { FallbackIsometricSvg } from './FallbackIsometricSvg';
+import { university } from '@/config/university';
 
 interface MessDioramaProps {
   queueCount?: number;
@@ -180,7 +181,7 @@ export function MessDioramaCanvas({
                   : '#E8871E',
             }}
           />
-          <span className="font-medium">North Hostel Mess</span>
+          <span className="font-medium">{university.messes[0].name}</span>
           <span className="text-warm-grey-300">·</span>
           <span className="font-mono font-medium">{queueCount} in line</span>
           <span className="text-warm-grey-300">·</span>

@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { university } from '@/config/university';
 import {
   Save,
   CheckCircle2,
@@ -19,7 +21,7 @@ import { playDhabaSound } from '@/components/ui/CraftedInteractions';
 export default function AdminPage() {
   const [messes, setMesses] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
-  const [selectedMessCode, setSelectedMessCode] = useState('mess-1');
+  const [selectedMessCode, setSelectedMessCode] = useState(university.messes[0]?.id || 'central-mess-north');
   const [lowThresh, setLowThresh] = useState(15);
   const [highThresh, setHighThresh] = useState(35);
   const [statusMsg, setStatusMsg] = useState('');
@@ -126,12 +128,51 @@ export default function AdminPage() {
 
   return (
     <div className="w-full space-y-7 pb-16" id="admin-control-page">
+      {/* 0. ADMIN SUBNAV */}
+      <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-4 shadow-brutal-md flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin"
+            className="px-3 py-1.5 font-mono text-xs font-black rounded-lg border-2 border-[#14110F] bg-[#14110F] text-[#FAF5E8]"
+          >
+            CONTROLS
+          </Link>
+          <Link
+            href="/admin/menu"
+            className="px-3 py-1.5 font-mono text-xs font-bold rounded-lg border-2 border-[#14110F] bg-[#FAF5E8] text-[#14110F] hover:bg-[#EAE1CA]"
+          >
+            WEEKLY MENU
+          </Link>
+          <Link
+            href="/admin/data"
+            className="px-3 py-1.5 font-mono text-xs font-bold rounded-lg border-2 border-[#14110F] bg-[#FAF5E8] text-[#14110F] hover:bg-[#EAE1CA]"
+          >
+            DATA &amp; EXPORT
+          </Link>
+          <Link
+            href="/admin/pilot"
+            className="px-3 py-1.5 font-mono text-xs font-bold rounded-lg border-2 border-[#14110F] bg-[#FAF5E8] text-[#14110F] hover:bg-[#EAE1CA]"
+          >
+            PILOT TRIAL
+          </Link>
+          <Link
+            href="/admin/ml"
+            className="px-3 py-1.5 font-mono text-xs font-bold rounded-lg border-2 border-[#14110F] bg-[#FAF5E8] text-[#14110F] hover:bg-[#EAE1CA]"
+          >
+            FORECAST &amp; MODELS
+          </Link>
+        </div>
+        <div className="font-mono text-xs font-bold text-[#5C554F]">
+          CAMPUS: <span className="font-black text-[#14110F]">{university.shortName} • {university.messes[0].name}</span>
+        </div>
+      </div>
+
       {/* 1. ADMIN DISPATCH BOARD */}
       <div className="bg-[#FAF5E8] border-[3px] border-[#14110F] rounded-2xl p-6 sm:p-8 shadow-brutal-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] font-black uppercase tracking-widest bg-[#14110F] text-[#FAF5E8] px-2.5 py-0.5 rounded">
-              WARDEN &amp; MESS COMMITTEE
+              WARDEN &amp; MESS COMMITTEE • {university.shortName}
             </span>
             <span className="font-serif italic text-xs text-[#5C554F]">
               प्रशासन नियंत्रण कक्ष
@@ -141,7 +182,7 @@ export default function AdminPage() {
             HOSTEL MESS ADMINISTRATION
           </h1>
           <p className="font-serif text-sm text-[#5C554F]">
-            Adjust threshold boundaries, trigger live presentation rush hour simulation, and inspect privacy directory.
+            Adjust threshold boundaries for {university.messes[0].name}, trigger live rush simulations, and manage empirical pilot trials.
           </p>
         </div>
 
@@ -359,7 +400,7 @@ export default function AdminPage() {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-[#F28C1B]" />
               <h2 className="font-display text-2xl font-black uppercase text-[#14110F]">
-                STUDENT DIRECTORY SAMPLE ({students.length || 608} TOTAL)
+                STUDENT DIRECTORY SAMPLE ({students.length || university.messes[0].students} TOTAL)
               </h2>
             </div>
             <p className="font-serif text-xs text-[#5C554F] mt-0.5">

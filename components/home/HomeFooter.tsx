@@ -2,21 +2,27 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { university, brand } from '@/config/university';
+import { UniQLogo } from '@/components/brand/UniQLogo';
 
 export function HomeFooter() {
+  const primaryMess = university.messes[0];
+
   return (
     <footer className="w-full bg-[#14110F] text-[#F4ECD8] border-t-2 border-[#14110F] relative overflow-hidden pt-16 sm:pt-20">
       <div className="max-w-[1280px] mx-auto px-6 relative z-10">
         {/* Top footer row: Link columns & info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 pb-16 border-b border-white/10">
           {/* Col 1: Identity */}
-          <div className="space-y-4">
-            <div className="font-condensed text-3xl sm:text-4xl uppercase tracking-wider text-[#F4ECD8]">
-              BEAT THE MESS RUSH
+          <div className="space-y-3">
+            <Link href="/" className="inline-block hover:opacity-90 transition-opacity">
+              <UniQLogo size={36} lightText />
+            </Link>
+            <div className="font-accent italic text-sm text-saffron">
+              {brand.tagline}
             </div>
             <p className="font-body text-xs text-[#A8A095] leading-relaxed max-w-xs">
-              A 15-minute staggered lunch booking system connecting student arrival demand directly
-              with hostel kitchen batch prep.
+              {brand.descriptor}
             </p>
           </div>
 
@@ -57,14 +63,14 @@ export function HomeFooter() {
           {/* Col 3: Campus Pilot Info */}
           <div className="space-y-3 font-mono text-xs">
             <div className="font-bold uppercase tracking-widest text-saffron">
-              Pilot Parameters
+              Mess Information
             </div>
             <ul className="space-y-2 text-[#A8A095]">
-              <li>Hostel 4 Dining Hall</li>
-              <li>North Campus Express Line</li>
-              <li>600 Active Boarders</li>
-              <li>15-Minute Staggered Slots</li>
-              <li>Daily Waste Weigh-ins</li>
+              <li>{primaryMess.name} (LPU Tenant)</li>
+              <li>{primaryMess.hostel} ({primaryMess.seats ? `${primaryMess.seats} Seats` : 'Seats unverified'})</li>
+              <li>{primaryMess.students ? `${primaryMess.students} Boarders` : 'Students unverified'} ({primaryMess.counters ? `${primaryMess.counters} Counters` : 'Counters unverified'})</li>
+              <li>{university.slotLengthMinutes}-Minute Staggered Slots</li>
+              <li>{university.city}</li>
             </ul>
           </div>
 
@@ -86,7 +92,7 @@ export function HomeFooter() {
 
         {/* Bottom copyright row */}
         <div className="pt-8 pb-4 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-[#8E857C]">
-          <span>Designed & Built for Collegiate Dining Halls</span>
+          <span>{brand.credit}</span>
           <span>Open Source Framework · MIT License</span>
         </div>
       </div>
@@ -95,14 +101,14 @@ export function HomeFooter() {
         ── HUGE BEBAS WORDMARK INTENTIONALLY CROPPED AT BOTTOM EDGE ──
         The only intentional crop on the site per design brief.
       */}
-      <div className="w-full overflow-hidden select-none pointer-events-none mt-4">
+      <div className="w-full overflow-hidden select-none pointer-events-none mt-4 flex justify-center">
         <div
-          className="font-condensed uppercase tracking-tighter text-[#221E1A] text-center whitespace-nowrap leading-[0.72] translate-y-[22%]"
+          className="text-center whitespace-nowrap translate-y-[22%]"
           style={{
             fontSize: 'clamp(96px, 19vw, 280px)',
           }}
         >
-          BEAT THE MESS RUSH
+          <UniQLogo huge />
         </div>
       </div>
     </footer>

@@ -6,28 +6,29 @@ import { Html } from '@react-three/drei/web/Html';
 import * as THREE from 'three';
 import { createKatoriProfile, KatoriKind } from '@/lib/three/profiles';
 import { getHammeredSteelTexture } from '@/lib/three/textures';
-import { Dal, Sabzi, Rice, Curd } from './Food';
+import { DalTadka, AlooGobi, Rajma, CurdRaita, GulabJamun, PickleBlob } from './Food';
 import { Steam } from './Steam';
 
-export type FoodKind = 'dal' | 'curd' | 'sabzi' | 'rice';
+export type FoodKind = 'dal' | 'aloogobi' | 'rajma' | 'curd' | 'sweet' | 'pickle';
 
 interface KatoriProps {
-  id: string;
+  id?: string;
   position: [number, number, number];
   kind: KatoriKind;
   food: FoodKind;
-  title: string;
-  devanagari: string;
-  metric: string;
-  href: string;
-  isHovered: boolean;
-  onHover: (id: string | null) => void;
-  onClick: (id: string, href: string, pos: [number, number, number]) => void;
+  title?: string;
+  devanagari?: string;
+  metric?: string;
+  href?: string;
+  isHovered?: boolean;
+  onHover?: (id: string | null) => void;
+  onClick?: (id: string, href: string, pos: [number, number, number]) => void;
   isMobile?: boolean;
+  interactive?: boolean;
 }
 
 export function Katori({
-  id,
+  id = 'katori',
   position,
   kind,
   food,
@@ -35,10 +36,11 @@ export function Katori({
   devanagari,
   metric,
   href,
-  isHovered,
+  isHovered = false,
   onHover,
   onClick,
   isMobile = false,
+  interactive = Boolean(href),
 }: KatoriProps) {
   const groupRef = useRef<THREE.Group>(null);
   const bumpMap = useMemo(() => getHammeredSteelTexture(), []);
@@ -51,11 +53,11 @@ export function Katori({
     return geom;
   }, [kind]);
 
-  // Spring physics for lift (+0.25 on hover)
+  // Spring physics for lift (+0.22 on hover for interactive katoris)
   const currentY = useRef(0);
   useFrame((_, delta) => {
     if (!groupRef.current) return;
-    const targetY = isHovered ? 0.25 : 0;
+    const targetY = interactive && isHovered ? 0.22 : 0;
     currentY.current = THREE.MathUtils.damp(currentY.current, targetY, 14, delta);
     groupRef.current.position.y = position[1] + currentY.current;
   });
@@ -64,59 +66,60 @@ export function Katori({
   const [touchLifted, setTouchLifted] = useState(false);
 
   const handleClick = (e: any) => {
+    if (!interactive || !onClick || !href) return;
     e.stopPropagation();
     if (isMobile) {
       if (!touchLifted) {
         setTouchLifted(true);
-        onHover(id);
+        if (onHover) onHover(id);
         return;
       }
     }
     onClick(id, href, position);
   };
 
-  const rimY = kind === 'tall' ? 0.62 : kind === 'large' ? 0.54 : kind === 'small' ? 0.50 : 0.46;
-  const innerY = kind === 'tall' ? 0.48 : kind === 'large' ? 0.40 : kind === 'small' ? 0.38 : 0.34;
-  const rimRadiusInner = kind === 'small' ? 0.435 : kind === 'large' ? 0.475 : 0.465;
-  const rimRadiusOuter = kind === 'small' ? 0.475 : kind === 'large' ? 0.52 : 0.505;
+  const rimY = kind === 'tall' ? 0.54 : kind === 'large' ? 0.54 : kind === 'small' ? 0.50 : kind === 'mini' ? 0.42 : 0.48;
+  const innerY = kind === 'tall' ? 0.44 : kind === 'large' ? 0.44 : kind === 'small' ? 0.40 : kind === 'mini' ? 0.34 : 0.38;
+  const rimRadiusInner = kind === 'small' ? 0.41 : kind === 'large' ? 0.45 : kind === 'tall' ? 0.43 : kind === 'mini' ? 0.31 : 0.45;
+  const rimRadiusOuter = kind === 'small' ? 0.45 : kind === 'large' ? 0.49 : kind === 'tall' ? 0.47 : kind === 'mini' ? 0.35 : 0.49;
 
   return (
     <group
       ref={groupRef}
       position={position}
       onPointerOver={(e) => {
+        if (!interactive) return;
         e.stopPropagation();
         if (typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
           document.body.style.cursor = "url('/spoon-cursor.svg') 2 2, pointer";
         } else {
           document.body.style.cursor = 'pointer';
         }
-        onHover(id);
+        if (onHover) onHover(id);
       }}
       onPointerOut={() => {
+        if (!interactive) return;
         document.body.style.cursor = 'auto';
-        onHover(null);
+        if (onHover) onHover(null);
         setTouchLifted(false);
       }}
-      onClick={handleClick}
+      onClick={interactive ? handleClick : undefined}
     >
       {/* ── Base contact shadow ring on plate floor ── */}
-      <mesh position={[0, -0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.24, 0.38, 36]} />
-        <meshBasicMaterial color="#14110F" transparent opacity={0.35} depthWrite={false} />
+      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[kind === 'mini' ? 0.16 : 0.22, kind === 'mini' ? 0.30 : 0.38, 36]} />
+        <meshBasicMaterial color="#0E0C0A" transparent opacity={0.35} depthWrite={false} />
       </mesh>
 
-      {/* ── Matte Black Cast-Iron / Enamel Katori Bowl (#17140F, metalness 0.35, roughness 0.55) ── */}
+      {/* ── Matte Black Katori Bowl (#15120E, metalness 0.08, roughness 0.72, envMapIntensity 0.15) ── */}
       <mesh geometry={latheGeometry} castShadow receiveShadow>
-        <meshPhysicalMaterial
-          color={isHovered ? '#201B15' : '#17140F'}
-          metalness={0.35}
-          roughness={0.55}
-          clearcoat={0.25}
-          clearcoatRoughness={0.4}
+        <meshStandardMaterial
+          color={interactive && isHovered ? '#1E1A15' : '#15120E'}
+          metalness={0.08}
+          roughness={0.72}
+          envMapIntensity={0.15}
           bumpMap={bumpMap}
-          bumpScale={0.003}
-          envMapIntensity={0.45}
+          bumpScale={0.002}
           side={THREE.DoubleSide}
           transparent={false}
           opacity={1}
@@ -124,29 +127,30 @@ export function Katori({
         />
       </mesh>
 
-      {/* ── Deep Inner Wall Shadow Ring (#0D0B08, darker than plate so food looks sunk in) ── */}
+      {/* ── Katori Inner Wall (#0E0C0A) ── */}
       <mesh
         position={[0, innerY, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
       >
         <ringGeometry
           args={[
-            kind === 'small' ? 0.35 : 0.38,
-            kind === 'small' ? 0.44 : 0.48,
+            kind === 'mini' ? 0.24 : kind === 'small' ? 0.34 : 0.37,
+            rimRadiusInner,
             48,
           ]}
         />
         <meshStandardMaterial
-          color="#0D0B08"
-          roughness={0.7}
-          metalness={0.2}
+          color="#0E0C0A"
+          roughness={0.72}
+          metalness={0.08}
           side={THREE.DoubleSide}
           transparent={false}
           depthWrite={true}
         />
       </mesh>
 
-      {/* ── Thin Brushed-Brass Ring on Katori Rim (color #B8893A, metalness 0.85, roughness 0.35) ── */}
+      {/* ── Thin Brushed-Brass Ring on Katori Rim (#B8893A, metalness 0.8, roughness 0.4) ── */}
+      {/* Modest width so the black dominates */}
       <mesh
         position={[0, rimY + 0.002, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -156,8 +160,8 @@ export function Katori({
         />
         <meshStandardMaterial
           color="#B8893A"
-          metalness={0.85}
-          roughness={0.35}
+          metalness={0.8}
+          roughness={0.4}
           side={THREE.DoubleSide}
           transparent={false}
           opacity={1}
@@ -165,24 +169,28 @@ export function Katori({
         />
       </mesh>
 
-      {/* ── Sunk Food Contents ── */}
-      {food === 'dal' && <Dal radius={kind === 'large' ? 0.45 : 0.41} />}
-      {food === 'sabzi' && <Sabzi />}
-      {food === 'rice' && <Rice />}
-      {food === 'curd' && <Curd />}
+      {/* ── Food Contents (Heaped above the rim like a real serving) ── */}
+      {food === 'dal' && <DalTadka radius={kind === 'large' ? 0.45 : 0.41} />}
+      {food === 'aloogobi' && <AlooGobi />}
+      {food === 'rajma' && <Rajma />}
+      {food === 'curd' && <CurdRaita radius={kind === 'small' ? 0.41 : 0.44} />}
+      {food === 'sweet' && <GulabJamun />}
+      {food === 'pickle' && <PickleBlob />}
 
-      {/* ── Steam System (20 quads desktop / 8 mobile; idle loop on Dal) ── */}
-      <Steam
-        active={isHovered}
-        isIdle={food === 'dal'}
-        count={isMobile ? 8 : 20}
-        position={[0, kind === 'tall' ? 0.62 : 0.50, 0]}
-      />
+      {/* ── Steam System (only for interactive katoris: idle loop on Dal, active on hover) ── */}
+      {interactive && (
+        <Steam
+          active={isHovered}
+          isIdle={food === 'dal'}
+          count={isMobile ? 8 : 20}
+          position={[0, rimY + 0.05, 0]}
+        />
+      )}
 
-      {/* ── Hand-lettered Paper Tag (drei <Html>) ── */}
-      {isHovered && (
+      {/* ── Hand-lettered Paper Tag (drei <Html>) for interactive katoris ── */}
+      {interactive && isHovered && title && (
         <Html
-          position={[0, kind === 'tall' ? 1.05 : 0.92, 0]}
+          position={[0, rimY + 0.50, 0]}
           center
           distanceFactor={7}
           className="pointer-events-none select-none z-50"
@@ -193,9 +201,11 @@ export function Katori({
               <span className="font-condensed text-base tracking-wider uppercase font-bold text-[#14110F]">
                 {title}
               </span>
-              <span className="font-accent text-xs font-semibold text-[#F28C1B]">
-                {devanagari}
-              </span>
+              {devanagari && (
+                <span className="font-accent text-xs font-semibold text-[#F28C1B]">
+                  {devanagari}
+                </span>
+              )}
             </div>
             {/* Live metric + CTA */}
             <div className="mt-1 flex items-center justify-between gap-3 text-xs font-mono">

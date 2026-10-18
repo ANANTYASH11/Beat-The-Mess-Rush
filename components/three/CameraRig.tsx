@@ -12,8 +12,8 @@ interface CameraRigProps {
 export function CameraRig({ dollyTarget, isMobile = false }: CameraRigProps) {
   const { camera, pointer } = useThree();
 
-  // Position at [0, 6.6, 5.6] looking at origin for ~8% margin framing per specification
-  const basePos = useRef(new THREE.Vector3(0, 6.6, 5.6));
+  // Camera about [0, 6.2, 5.2], FOV 35 per specification
+  const basePos = useRef(new THREE.Vector3(0, 6.2, 5.2));
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
 
   useFrame((state, delta) => {
@@ -21,8 +21,8 @@ export function CameraRig({ dollyTarget, isMobile = false }: CameraRigProps) {
       // 700ms smooth camera dolly into clicked katori
       const targetPos = new THREE.Vector3(
         dollyTarget[0] * 0.65,
-        dollyTarget[1] + 1.65,
-        dollyTarget[2] * 0.65 + 1.85
+        dollyTarget[1] + 1.55,
+        dollyTarget[2] * 0.65 + 1.75
       );
       const lookTarget = new THREE.Vector3(
         dollyTarget[0],
@@ -34,9 +34,9 @@ export function CameraRig({ dollyTarget, isMobile = false }: CameraRigProps) {
       currentLookAt.current.lerp(lookTarget, delta * 5.2);
       camera.lookAt(currentLookAt.current);
     } else {
-      // Gentle mouse parallax tilt (clamped to max +/- 6 degrees = ~0.1 rad)
-      const mouseFactorX = isMobile ? 0 : pointer.x * 0.30;
-      const mouseFactorY = isMobile ? 0 : pointer.y * 0.20;
+      // Gentle subtle mouse parallax tilt (clamped to max +/- 4 degrees = ~0.07 rad)
+      const mouseFactorX = isMobile ? 0 : pointer.x * 0.22;
+      const mouseFactorY = isMobile ? 0 : pointer.y * 0.15;
 
       const targetX = basePos.current.x + mouseFactorX;
       const targetY = basePos.current.y - mouseFactorY;

@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import PwaRegister from '@/components/PwaRegister';
 import Link from 'next/link';
 import HomeFooter from '@/components/home/HomeFooter';
+import { brand } from '@/config/university';
 
 const bebasNeue = Bebas_Neue({
   subsets: ['latin'],
@@ -41,11 +42,28 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: 'Beat the Mess Rush — Live 3D Thali & Campus Dining Scheduling',
-  description:
-    'A real-time hostel dining scheduler. Spreads peak lunch queues across 15-minute arrival slots, feeds live demand to the kitchen, and cuts daily collegiate food waste.',
+  title: {
+    default: `${brand.name} | ${brand.tagline}`,
+    template: `%s | ${brand.name}`,
+  },
+  description: `${brand.tagline} ${brand.descriptor}`,
   manifest: '/manifest.json',
-  icons: { icon: '/icon.svg' },
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/favicon.ico',
+    apple: '/icon-180.png',
+  },
+  openGraph: {
+    title: `${brand.name} | ${brand.tagline}`,
+    description: `${brand.tagline} ${brand.descriptor}`,
+    type: 'website',
+    siteName: brand.name,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${brand.name} | ${brand.tagline}`,
+    description: `${brand.tagline} ${brand.descriptor}`,
+  },
 };
 
 export const viewport: Viewport = {
@@ -63,6 +81,26 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={`light ${fontVars}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var urlParams = new URLSearchParams(window.location.search);
+                var urlTheme = urlParams.get('theme');
+                var stored = urlTheme || localStorage.getItem('theme');
+                if (stored === 'dark') {
+                  document.documentElement.classList.remove('light');
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.classList.add('light');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${fontVars} font-body min-h-screen flex flex-col bg-bg text-ink relative selection:bg-saffron selection:text-ink`}
       >

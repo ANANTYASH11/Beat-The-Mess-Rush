@@ -5,8 +5,8 @@ let cachedRotiTex: THREE.CanvasTexture | null = null;
 
 export function getHammeredSteelTexture(): THREE.CanvasTexture {
   if (cachedHammeredTex) return cachedHammeredTex;
-  if (typeof document === 'undefined') {
-    return new THREE.CanvasTexture(document.createElement('canvas'));
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return new THREE.Texture() as unknown as THREE.CanvasTexture;
   }
 
   const canvas = document.createElement('canvas');
@@ -42,8 +42,8 @@ export function getHammeredSteelTexture(): THREE.CanvasTexture {
 
 export function getRotiTexture(): THREE.CanvasTexture {
   if (cachedRotiTex) return cachedRotiTex;
-  if (typeof document === 'undefined') {
-    return new THREE.CanvasTexture(document.createElement('canvas'));
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return new THREE.Texture() as unknown as THREE.CanvasTexture;
   }
 
   const canvas = document.createElement('canvas');

@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { university } from '@/config/university';
 
 interface TokenCardProps {
   tokenNumber: number;
@@ -35,12 +36,12 @@ export function TokenCard({
       {/* Top section: Meal & Token Number */}
       <div className="p-6 pb-4 bg-warm-grey-100/50">
         <div className="flex items-center justify-between text-xs text-ink-muted uppercase tracking-wider font-mono">
-          <span>{meal} Token</span>
-          <span className="text-saffron font-bold">North Hostel Mess</span>
+          <span>UniQ Token</span>
+          <span className="text-saffron font-bold">{university.messes[0].name}</span>
         </div>
         <div className="mt-3 flex items-baseline justify-between">
           <div>
-            <span className="text-xs text-ink-muted block font-sans">Token</span>
+            <span className="text-xs text-ink-muted block font-sans">UniQ Token</span>
             <span className="font-mono text-3xl font-bold tracking-tight text-ink">
               #{tokenNumber}
             </span>

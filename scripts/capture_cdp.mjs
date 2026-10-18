@@ -92,8 +92,8 @@ async function capture(name, width, height, url) {
     }
   }
 
-  // Wait 1.5s for Three.js textures and lighting to fully stabilize
-  await new Promise(r => setTimeout(r, 1500));
+  // Wait 2.5s for Three.js textures and lighting to fully stabilize
+  await new Promise(r => setTimeout(r, 2500));
 
   const shot = await sendSession('Page.captureScreenshot', { format: 'png' });
   const outPath = path.join(outDir, `${name}.png`);

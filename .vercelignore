@@ -1,0 +1,8 @@
+screenshots/
+scripts/
+ml-service/
+*.png
+*.jpg
+*.log
+.next/
+node_modules/

@@ -1,5 +1,5 @@
 /**
- * Design Tokens — "Beat the Mess Rush" Signature Theme
+ * Design Tokens — "UniQ" Signature Theme
  * Cream paper, ink borders, hard offset shadows, vibrant canteen food colors.
  */
 
@@ -22,6 +22,7 @@
   --color-steel-light:#E2E4E8;
 
   /* ── Hard Offset Shadows (Brutal / Canteen Stamp) ── */
+  --shadow-offset-xs: 1px 1px 0px #14110F;
   --shadow-offset-sm: 2px 2px 0px #14110F;
   --shadow-offset-md: 3px 3px 0px #14110F;
   --shadow-offset-lg: 4px 4px 0px #14110F;
@@ -34,8 +35,8 @@
 }
 
 .dark {
-  --color-bg:        #1A1613; /* Night mess warm charcoal per brief */
-  --color-bg-raised: #25201C;
+  --color-bg:        #1A1613; /* Night mess warm charcoal */
+  --color-bg-raised: #221D18; /* Dark panels per specification */
   --color-ink:       #F4ECD8; /* Cream ink */
   --color-ink-muted: #B8B0A2;
   --color-ink-faint: #7C7468;
@@ -49,6 +50,7 @@
   --color-steel-dark: #878C94;
   --color-steel-light:#E2E4E8;
 
+  --shadow-offset-xs: 1px 1px 0px #F4ECD8;
   --shadow-offset-sm: 2px 2px 0px #F4ECD8;
   --shadow-offset-md: 3px 3px 0px #F4ECD8;
   --shadow-offset-lg: 4px 4px 0px #F4ECD8;

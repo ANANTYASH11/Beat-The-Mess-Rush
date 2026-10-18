@@ -1,45 +1,50 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
+import { university } from '@/config/university';
 
-interface SplitFlapProps {
+export interface SplitFlapProps {
   messLabel?: string;
-  queueCount?: number | string;
+  queueCount?: number;
   waitRange?: string;
   crowdStatus?: string;
   className?: string;
   soundEnabled?: boolean;
+  rows?: [string, string];
 }
 
-const RANDOM_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const RANDOM_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-| ';
+const TOTAL_COLS = 32;
 
-// Web Audio API mechanical split-flap click sound (subtle, 18ms duration)
+// Soft mechanical flap click using Web Audio API
 function playSoftFlapClick() {
   if (typeof window === 'undefined') return;
   try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    const AudioContext = window.AudioContext || (window as unknown as { webkitAudioContext: typeof window.AudioContext }).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(480, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.016);
+    osc.frequency.setValueAtTime(140 + Math.random() * 40, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + 0.022);
 
-    gain.gain.setValueAtTime(0.035, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.016);
+    gain.gain.setValueAtTime(0.045, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.022);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start();
-    osc.stop(ctx.currentTime + 0.018);
-  } catch {}
+    osc.stop(ctx.currentTime + 0.024);
+  } catch {
+    // Ignore audio context restrictions
+  }
 }
 
-// Single 3D Split-Flap Character Tile (at least 56px tall on desktop)
+// Single mechanical split-flap cell
 function FlapChar({
   targetChar,
   delayMs,
@@ -69,7 +74,6 @@ function FlapChar({
     if (timerRef.current) clearTimeout(timerRef.current);
 
     timerRef.current = setTimeout(() => {
-      // Cycle through 2 random letters before settling
       let cycleCount = 0;
       const maxCycles = targetChar === ' ' ? 0 : 2;
 
@@ -87,10 +91,9 @@ function FlapChar({
             setTimeout(() => {
               setIsFlippingBottom(false);
               runCycle();
-            }, 35);
-          }, 35);
+            }, 30);
+          }, 30);
         } else {
-          // Settle on final targetChar
           setDisplayedChar(targetChar);
           setIsFlippingTop(true);
           if (soundEnabled) playSoftFlapClick();
@@ -100,8 +103,8 @@ function FlapChar({
             setIsFlippingBottom(true);
             setTimeout(() => {
               setIsFlippingBottom(false);
-            }, 40);
-          }, 40);
+            }, 35);
+          }, 35);
         }
       };
 
@@ -114,13 +117,7 @@ function FlapChar({
   }, [targetChar, isBoardInView, delayMs, soundEnabled]);
 
   const isSeparator = targetChar === '|';
-  const isSpace = targetChar === ' ';
 
-  if (isSpace) {
-    return <span className="inline-block w-2 sm:w-3 h-12 sm:h-14" />;
-  }
-
-  // 3D rotation transforms strictly using transform and opacity
   let topTransform = 'rotateX(0deg)';
   let bottomTransform = 'rotateX(0deg)';
   let flapOpacity = 1;
@@ -135,23 +132,27 @@ function FlapChar({
 
   return (
     <span
-      className={`relative inline-flex items-center justify-center w-6 h-12 sm:w-9 sm:h-14 bg-[#1C1917] ${
+      className={`relative flex items-center justify-center bg-[#1C1917] ${
         isSeparator ? 'text-[#F2B705]' : charColorClass
-      } border border-black/60 font-mono font-bold text-base sm:text-2xl select-none shadow-[1px_2px_0px_#000000] overflow-hidden`}
+      } border border-black/70 font-mono font-bold select-none shadow-[0px_1px_0px_#000000] overflow-hidden min-w-0 w-full rounded-[1px]`}
       style={{
-        perspective: '450px',
+        aspectRatio: '1 / 1.45',
+        maxHeight: '36px',
+        fontSize: 'clamp(7px, 1.35vw, 14px)',
+        perspective: '400px',
         transformStyle: 'preserve-3d',
+        lineHeight: 1,
       }}
     >
       {/* Horizontal split seam */}
       <span className="absolute inset-x-0 top-1/2 h-[1px] bg-[#0A0908] z-20 pointer-events-none" />
 
-      {/* Top half subtle metallic reflection */}
+      {/* Top half metallic highlight */}
       <span className="absolute inset-x-0 top-0 h-1/2 bg-white/[0.04] z-10 pointer-events-none" />
 
-      {/* Animated character face with CSS 3D rotateX and opacity transitions */}
+      {/* Animated character face */}
       <span
-        className="inline-block transition-all duration-75 ease-in-out will-change-transform"
+        className="inline-block transition-all duration-75 ease-in-out will-change-transform leading-none"
         style={{
           transform: isFlippingTop ? topTransform : bottomTransform,
           opacity: flapOpacity,
@@ -159,25 +160,49 @@ function FlapChar({
           backfaceVisibility: 'hidden',
         }}
       >
-        {displayedChar}
+        {displayedChar === ' ' ? '\u00A0' : displayedChar}
       </span>
     </span>
   );
 }
 
+// Abbreviate mess name only when needed so it fits cleanly
+function formatMessBoardLabel(label: string): string {
+  const clean = (label || '').trim().toUpperCase();
+  if (clean.length <= 16) return clean;
+  return clean
+    .replace(/CENTRAL MESS /g, 'C ')
+    .replace(/CENTRAL /g, 'C ')
+    .replace(/BOYS HOSTEL MESS /g, 'BH ')
+    .replace(/BOYS HOSTEL /g, 'BH ')
+    .replace(/GIRLS HOSTEL MESS /g, 'GH ')
+    .replace(/GIRLS HOSTEL /g, 'GH ')
+    .replace(/BOYS STUDIO /g, 'BS ')
+    .replace(/GIRLS STUDIO /g, 'GS ');
+}
+
+// Center string into a fixed column count
+function padRowToCols(text: string, totalCols: number): string {
+  const clean = text.trim();
+  if (clean.length >= totalCols) return clean.slice(0, totalCols);
+  const leftPad = Math.floor((totalCols - clean.length) / 2);
+  const rightPad = totalCols - clean.length - leftPad;
+  return ' '.repeat(leftPad) + clean + ' '.repeat(rightPad);
+}
+
 export function SplitFlap({
-  messLabel = 'MESS A',
+  messLabel = university.messes[0]?.shortName.toUpperCase() || 'CENTRAL NORTH',
   queueCount = 20,
   waitRange = '6-11 MIN',
   crowdStatus = 'BUSY',
   className = '',
   soundEnabled: initialSound = false,
+  rows,
 }: SplitFlapProps) {
   const [soundOn, setSoundOn] = useState(initialSound);
   const [inView, setInView] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
 
-  // Trigger when scrolled into view
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -199,108 +224,101 @@ export function SplitFlap({
 
   const normalizedStatus = crowdStatus.toUpperCase();
 
-  // Status colors: green LOW, turmeric MEDIUM, red BUSY
   const getStatusColor = (status: string) => {
-    if (status.includes('LOW')) return 'text-[#2F6B3A]';
+    if (status.includes('LOW')) return 'text-[#58B971]';
     if (status.includes('MED')) return 'text-[#F2B705]';
-    return 'text-[#D7312B]'; // BUSY
+    return 'text-[#D7312B]';
   };
 
   const statusColorClass = getStatusColor(normalizedStatus);
 
-  // Cells for modular desktop (1 row) vs mobile (2 rows of 2 cells)
-  const cell1 = `${messLabel.toUpperCase()}`;
-  const cell2 = `QUEUE ${queueCount}`;
-  const cell3 = `WAIT ${waitRange.toUpperCase()}`;
-  const cell4 = `STATUS ${normalizedStatus}`;
+  // Compute Row 1 and Row 2 per specification:
+  // Row 1: "CENTRAL SOUTH" (abbreviated only if needed: "C SOUTH")
+  // Row 2: "QUEUE 20 | WAIT 6-11 MIN | BUSY"
+  const rawRow1 = rows?.[0] || formatMessBoardLabel(messLabel);
+  const rawRow2 =
+    rows?.[1] ||
+    `QUEUE ${queueCount} | WAIT ${waitRange.toUpperCase()} | ${normalizedStatus}`;
 
-  // Helper to render an array of characters
-  const renderCellChars = (text: string, baseIndex: number, customColor?: string) => {
-    return text.split('').map((ch, idx) => (
-      <FlapChar
-        key={`${baseIndex}-${idx}`}
-        targetChar={ch}
-        delayMs={(baseIndex + idx) * 40} // 40ms stagger per brief
-        soundEnabled={soundOn}
-        charColorClass={customColor || 'text-[#F4ECD8]'}
-        isBoardInView={inView}
-      />
-    ));
+  const row1Text = padRowToCols(rawRow1, TOTAL_COLS);
+  const row2Text = padRowToCols(rawRow2, TOTAL_COLS);
+
+  const renderRow = (text: string, baseIndex: number, defaultColor = 'text-[#F4ECD8]') => {
+    const statusStartIndex = text.indexOf(normalizedStatus);
+    const statusEndIndex = statusStartIndex >= 0 ? statusStartIndex + normalizedStatus.length : -1;
+
+    return text.split('').map((ch, idx) => {
+      let colorClass = defaultColor;
+      if (statusStartIndex >= 0 && idx >= statusStartIndex && idx < statusEndIndex) {
+        colorClass = statusColorClass;
+      }
+
+      return (
+        <FlapChar
+          key={`${baseIndex}-${idx}`}
+          targetChar={ch}
+          delayMs={(baseIndex + idx) * 20}
+          soundEnabled={soundOn}
+          charColorClass={colorClass}
+          isBoardInView={inView}
+        />
+      );
+    });
   };
 
   return (
-    <section
-      ref={boardRef}
-      className={`w-full bg-[#14110F] border-y-2 border-ink py-4 px-4 sm:px-6 shadow-offset-sm select-none relative ${className}`}
-      role="status"
-      aria-live="polite"
-    >
-      <div className="max-w-[1280px] mx-auto flex items-center justify-between gap-4">
-        {/* ── DESKTOP & TABLET: ONE full width row ── */}
-        <div className="hidden md:flex w-full items-center justify-center overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap py-1">
-            {/* Cell 1: MESS A */}
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              {renderCellChars(cell1, 0)}
-            </div>
+    <div className={`w-full ${className}`}>
+      {/* ── MECHANICAL CHASSIS (Deep ink enclosure with brass bezel accent) ── */}
+      <section
+        ref={boardRef}
+        className="w-full bg-[#14110F] dark:bg-[#120F0D] border-2 border-ink rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-offset-md select-none relative overflow-hidden"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="w-full flex flex-col items-center gap-1.5 sm:gap-3">
+          {/* Subtle top board tag */}
+          <div className="font-mono text-[9px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-[#8E857C] text-center">
+            UNIQ LIVE COUNTER STATUS
+          </div>
 
-            {/* Separator */}
-            <div className="px-1">{renderCellChars('|', cell1.length)}</div>
+          {/* ── ROW 1: MESS SHORT NAME (Fixed 32 columns, zero overflow) ── */}
+          <div
+            className="w-full grid gap-[1px]"
+            style={{
+              gridTemplateColumns: `repeat(${TOTAL_COLS}, minmax(0, 1fr))`,
+            }}
+          >
+            {renderRow(row1Text, 0, 'text-[#F4ECD8]')}
+          </div>
 
-            {/* Cell 2: QUEUE 20 */}
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              {renderCellChars(cell2, cell1.length + 1)}
-            </div>
-
-            {/* Separator */}
-            <div className="px-1">{renderCellChars('|', cell1.length + cell2.length + 1)}</div>
-
-            {/* Cell 3: WAIT 6-11 MIN */}
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              {renderCellChars(cell3, cell1.length + cell2.length + 2)}
-            </div>
-
-            {/* Separator */}
-            <div className="px-1">{renderCellChars('|', cell1.length + cell2.length + cell3.length + 2)}</div>
-
-            {/* Cell 4: STATUS BUSY (Colored by status) */}
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              {renderCellChars(cell4, cell1.length + cell2.length + cell3.length + 3, statusColorClass)}
-            </div>
+          {/* ── ROW 2: QUEUE 20 | WAIT 6-11 MIN | BUSY (Fixed 32 columns, zero overflow) ── */}
+          <div
+            className="w-full grid gap-[1px]"
+            style={{
+              gridTemplateColumns: `repeat(${TOTAL_COLS}, minmax(0, 1fr))`,
+            }}
+          >
+            {renderRow(row2Text, row1Text.length + 2)}
           </div>
         </div>
+      </section>
 
-        {/* ── MOBILE (375px): TWO rows of two cells ── */}
-        <div className="flex md:hidden w-full flex-col items-center gap-2.5 py-1">
-          {/* Row 1: MESS A | QUEUE 20 */}
-          <div className="flex items-center gap-1 flex-nowrap">
-            <div className="flex items-center gap-0.5">{renderCellChars(cell1, 0)}</div>
-            <div className="px-1">{renderCellChars('|', cell1.length)}</div>
-            <div className="flex items-center gap-0.5">{renderCellChars(cell2, cell1.length + 1)}</div>
-          </div>
-
-          {/* Row 2: WAIT 6-11 MIN | STATUS BUSY */}
-          <div className="flex items-center gap-1 flex-nowrap">
-            <div className="flex items-center gap-0.5">{renderCellChars(cell3, cell1.length + cell2.length + 2)}</div>
-            <div className="px-1">{renderCellChars('|', cell1.length + cell2.length + cell3.length + 2)}</div>
-            <div className="flex items-center gap-0.5">
-              {renderCellChars(cell4, cell1.length + cell2.length + cell3.length + 3, statusColorClass)}
-            </div>
-          </div>
-        </div>
-
-        {/* Optional soft click sound toggle button (off by default) */}
+      {/* ── MUTE / SOUND TOGGLE: Positioned below board, right-aligned, zero overlapping ── */}
+      <div className="flex justify-end items-center mt-2 px-1">
         <button
+          type="button"
           onClick={() => setSoundOn(!soundOn)}
-          title={soundOn ? 'Click sound enabled (mute)' : 'Click sound muted (enable)'}
+          title={soundOn ? 'Click sound enabled (click to mute)' : 'Click sound muted (click to enable)'}
           aria-label={soundOn ? 'Mute split-flap sound' : 'Enable split-flap sound'}
-          className="flex-shrink-0 p-2 text-ink-muted hover:text-saffron transition-colors border border-white/10 bg-black/40 text-xs font-mono"
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold text-ink-muted hover:text-ink bg-bg-raised border border-ink/40 rounded-lg shadow-offset-xs transition-colors"
         >
-          {soundOn ? <Volume2 size={16} className="text-saffron" /> : <VolumeX size={16} />}
+          {soundOn ? <Volume2 size={13} className="text-saffron" /> : <VolumeX size={13} />}
+          <span>{soundOn ? 'FLAP SOUND: ON' : 'FLAP SOUND: MUTED'}</span>
         </button>
       </div>
-    </section>
+    </div>
   );
 }
 
+export { SplitFlap as SplitFlapBoard };
 export default SplitFlap;

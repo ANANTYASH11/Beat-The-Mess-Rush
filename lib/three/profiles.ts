@@ -4,23 +4,23 @@ import * as THREE from 'three';
  * Procedural Lathe cross-section profiles for Indian stainless-steel dining thali and katoris.
  */
 
-// 1. Thali Plate Profile: Deeper dish, steeper wall, wide rim (~0.28 units wide) with rolled lip
+// 1. Thali Plate Profile: Expansive dining floor (r=1.76), steep dish wall, modest rim width with rolled lip
 export function createPlateProfile(): THREE.Vector2[] {
   const points: THREE.Vector2[] = [];
   // Center point (x=0) to flat dished base
   points.push(new THREE.Vector2(0, 0));
-  points.push(new THREE.Vector2(0.5, 0.003));
-  points.push(new THREE.Vector2(1.0, 0.008));
-  points.push(new THREE.Vector2(1.48, 0.016));
+  points.push(new THREE.Vector2(0.6, 0.003));
+  points.push(new THREE.Vector2(1.2, 0.008));
+  points.push(new THREE.Vector2(1.76, 0.018));
   
-  // Steeper dish wall
-  points.push(new THREE.Vector2(1.62, 0.065));
-  points.push(new THREE.Vector2(1.74, 0.20));
-  points.push(new THREE.Vector2(1.85, 0.42));
+  // Steep dish wall
+  points.push(new THREE.Vector2(1.85, 0.10));
+  points.push(new THREE.Vector2(1.92, 0.24));
+  points.push(new THREE.Vector2(1.98, 0.42));
   
-  // Wide rim (~0.28 units wide from x=1.86 to x=2.14)
-  points.push(new THREE.Vector2(1.88, 0.455));
-  points.push(new THREE.Vector2(2.02, 0.462));
+  // Modest rim (~0.16 units wide from x=1.98 to x=2.14)
+  points.push(new THREE.Vector2(2.02, 0.455));
+  points.push(new THREE.Vector2(2.08, 0.462));
   points.push(new THREE.Vector2(2.14, 0.465));
   
   // Clear rolled steel outer lip
@@ -34,7 +34,7 @@ export function createPlateProfile(): THREE.Vector2[] {
 }
 
 // 2. Katori Profiles: Enlarged by ~35% with deeper walls and rolled rim
-export type KatoriKind = 'large' | 'small' | 'tall' | 'shallow';
+export type KatoriKind = 'large' | 'small' | 'tall' | 'shallow' | 'mini';
 
 export function createKatoriProfile(kind: KatoriKind): THREE.Vector2[] {
   const points: THREE.Vector2[] = [];
@@ -44,25 +44,29 @@ export function createKatoriProfile(kind: KatoriKind): THREE.Vector2[] {
   let h = 0.54;
 
   if (kind === 'large') {
-    // Student (Dal)
+    // Dal Tadka
     rFoot = 0.30;
-    rMax = 0.49;
+    rMax = 0.48;
     h = 0.54;
   } else if (kind === 'small') {
-    // Staff (Curd)
+    // Curd
     rFoot = 0.26;
-    rMax = 0.45;
+    rMax = 0.44;
     h = 0.50;
   } else if (kind === 'tall') {
-    // Kitchen (Sabzi) - Deeper bowl
+    // Aloo Gobi / Rajma
     rFoot = 0.28;
-    rMax = 0.48;
-    h = 0.62;
+    rMax = 0.46;
+    h = 0.54;
   } else if (kind === 'shallow') {
-    // Impact (Rice)
-    rFoot = 0.32;
-    rMax = 0.51;
-    h = 0.46;
+    rFoot = 0.30;
+    rMax = 0.48;
+    h = 0.48;
+  } else if (kind === 'mini') {
+    // Sweet (Gulab Jamun) / Pickle
+    rFoot = 0.20;
+    rMax = 0.34;
+    h = 0.42;
   }
 
   // Base center

@@ -6,13 +6,13 @@ let cachedRotiTexture: THREE.CanvasTexture | null = null;
 let cachedPlateGradientTex: THREE.CanvasTexture | null = null;
 
 /**
- * Procedural hammered-steel texture with authentic concentric engraved lathe grooves
- * and dark-ringed dimple edges for crisp relief and metallic depth.
+ * Procedural very subtle hammered-bump texture for matte black cast-iron/enamel finish.
+ * Soft dimples without harsh white highlights so the plate remains deep matte black without silver glare.
  */
 export function getHammeredSteelTexture(): THREE.CanvasTexture {
   if (cachedHammeredBump) return cachedHammeredBump;
-  if (typeof document === 'undefined') {
-    return new THREE.CanvasTexture(document.createElement('canvas'));
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return new THREE.Texture() as unknown as THREE.CanvasTexture;
   }
 
   const canvas = document.createElement('canvas');
@@ -26,46 +26,21 @@ export function getHammeredSteelTexture(): THREE.CanvasTexture {
 
   const rng = createSeededRandom(101);
 
-  // Stippled hammered hammer-strike dimples with darker ring edges for crisp relief
-  for (let i = 0; i < 850; i++) {
+  // Soft subtle dimples with very gentle contrast
+  for (let i = 0; i < 900; i++) {
     const x = rng() * 512;
     const y = rng() * 512;
-    const radius = 3.5 + rng() * 6.5;
+    const radius = 3.0 + rng() * 6.0;
 
-    // Dark ring edge for deep relief
-    ctx.strokeStyle = '#505050';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Soft dimple gradient center
     const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    grad.addColorStop(0, '#B0B0B0');
+    grad.addColorStop(0, '#8E8E8E');
     grad.addColorStop(0.65, '#808080');
-    grad.addColorStop(1, '#606060');
+    grad.addColorStop(1, '#747474');
 
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(x, y, radius * 0.9, 0, Math.PI * 2);
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
-  }
-
-  // Concentric engraved lathe rings on the floor
-  const ringRadii = [60, 105, 155, 200];
-  for (const r of ringRadii) {
-    ctx.strokeStyle = '#383838';
-    ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    ctx.arc(256, 256, r, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Fine subtle highlight edge right beside groove
-    ctx.strokeStyle = '#AAAAAA';
-    ctx.lineWidth = 1.0;
-    ctx.beginPath();
-    ctx.arc(256, 256, r + 1.2, 0, Math.PI * 2);
-    ctx.stroke();
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -76,13 +51,13 @@ export function getHammeredSteelTexture(): THREE.CanvasTexture {
 }
 
 /**
- * Procedural radial gradient map for plate:
- * Darker inner base (#6F757C) so the center looks deep, transitioning to #8E949B on the sloped wall and rim.
+ * Procedural texture for matte black plate floor:
+ * Floor color #1A1713 with 2 faint concentric grooves with ~4% warm colour shift (#14110E, not grey).
  */
 export function getPlateBaseGradientTexture(): THREE.CanvasTexture {
   if (cachedPlateGradientTex) return cachedPlateGradientTex;
-  if (typeof document === 'undefined') {
-    return new THREE.CanvasTexture(document.createElement('canvas'));
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return new THREE.Texture() as unknown as THREE.CanvasTexture;
   }
 
   const canvas = document.createElement('canvas');
@@ -90,15 +65,34 @@ export function getPlateBaseGradientTexture(): THREE.CanvasTexture {
   canvas.height = 512;
   const ctx = canvas.getContext('2d')!;
 
-  const grad = ctx.createRadialGradient(256, 256, 20, 256, 256, 256);
-  grad.addColorStop(0, '#6F757C');    // Darker inner base (#6F757C) per brief
-  grad.addColorStop(0.68, '#787E85'); // Floor boundary
-  grad.addColorStop(0.80, '#858B92'); // Sloped dish wall
-  grad.addColorStop(0.92, '#8E949B'); // Wide rim (#8E949B)
-  grad.addColorStop(1.0, '#B2B7BD');  // Rim rolled lip highlight
-
-  ctx.fillStyle = grad;
+  // Plate floor base colour #1A1713
+  ctx.fillStyle = '#1A1713';
   ctx.fillRect(0, 0, 512, 512);
+
+  // 2 faint concentric grooves on the floor (colour shift of ~4%: #14110E, warm black, not grey)
+  const grooves = [125, 205];
+  for (const r of grooves) {
+    // Soft outer depression
+    ctx.strokeStyle = '#14110E';
+    ctx.lineWidth = 3.0;
+    ctx.beginPath();
+    ctx.arc(256, 256, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Subtle fine groove core
+    ctx.strokeStyle = '#110E0C';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(256, 256, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Very faint warm highlight edge (~4% brighter warm tone #201D18)
+    ctx.strokeStyle = '#201D18';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(256, 256, r + 1.2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 
   const texture = new THREE.CanvasTexture(canvas);
   cachedPlateGradientTex = texture;
@@ -106,12 +100,12 @@ export function getPlateBaseGradientTexture(): THREE.CanvasTexture {
 }
 
 /**
- * Procedural toasted roti texture: golden-tan #D9A55B with darker toasted spots #7A4A1E.
+ * Procedural toasted roti texture: golden-tan #D9A55B with charred blister spots.
  */
 export function getRotiToastedTexture(): THREE.CanvasTexture {
   if (cachedRotiTexture) return cachedRotiTexture;
-  if (typeof document === 'undefined') {
-    return new THREE.CanvasTexture(document.createElement('canvas'));
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return new THREE.Texture() as unknown as THREE.CanvasTexture;
   }
 
   const canvas = document.createElement('canvas');
@@ -125,35 +119,43 @@ export function getRotiToastedTexture(): THREE.CanvasTexture {
 
   const rng = createSeededRandom(777);
 
-  // Soft flour swirls
-  for (let i = 0; i < 18; i++) {
-    ctx.fillStyle = 'rgba(255, 245, 220, 0.22)';
+  // Soft subtle flour dusting swirls
+  for (let i = 0; i < 24; i++) {
+    ctx.fillStyle = 'rgba(255, 246, 224, 0.18)';
     ctx.beginPath();
     ctx.arc(
       rng() * 512,
       rng() * 512,
-      30 + rng() * 60,
+      25 + rng() * 70,
       0,
       Math.PI * 2
     );
     ctx.fill();
   }
 
-  // Toasted charred brown spots #7A4A1E
-  for (let i = 0; i < 40; i++) {
+  // Toasted charred brown spots with authentic blister rings
+  for (let i = 0; i < 55; i++) {
     const x = rng() * 512;
     const y = rng() * 512;
-    const r = 4 + rng() * 14;
+    const r = 3 + rng() * 16;
 
     const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-    grad.addColorStop(0, '#42240C'); // Dark blister center
-    grad.addColorStop(0.45, '#7A4A1E'); // Toasted brown #7A4A1E
-    grad.addColorStop(0.8, '#B87836');
+    grad.addColorStop(0, '#361806'); // Deep dark charred center
+    grad.addColorStop(0.35, '#683612'); // Rich roasted brown
+    grad.addColorStop(0.70, '#A86524'); // Toasted amber ring
     grad.addColorStop(1, 'rgba(217, 165, 91, 0)');
 
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Fine dark speckled pepper/atta flecks
+  for (let i = 0; i < 70; i++) {
+    ctx.fillStyle = rng() > 0.5 ? '#4A230B' : '#733E16';
+    ctx.beginPath();
+    ctx.arc(rng() * 512, rng() * 512, 1.2 + rng() * 1.5, 0, Math.PI * 2);
     ctx.fill();
   }
 

@@ -3,7 +3,7 @@
 import React from 'react';
 
 interface TactileButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'ghost' | 'saffron' | 'curry' | 'chilli' | 'paper';
   size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
 }
@@ -27,9 +27,13 @@ export function TactileButton({
 
   const variantClasses = {
     primary: 'bg-saffron text-ink hover:bg-saffron/90',
+    saffron: 'bg-saffron text-ink hover:bg-saffron/90',
     secondary: 'bg-bg-raised text-ink hover:bg-warm-grey-100',
+    paper: 'bg-bg-raised text-ink hover:bg-warm-grey-100',
     danger: 'bg-chilli text-white hover:bg-chilli/90',
+    chilli: 'bg-chilli text-white hover:bg-chilli/90',
     success: 'bg-curry-leaf text-white hover:bg-curry-leaf/90',
+    curry: 'bg-curry-leaf text-white hover:bg-curry-leaf/90',
     ghost: 'bg-transparent border-transparent shadow-none hover:bg-ink/5',
   };
 

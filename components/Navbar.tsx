@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Sun, Moon, Zap, ChevronDown, Check, Menu, X } from 'lucide-react';
+import { university } from '@/config/university';
+import { UniQLogo } from '@/components/brand/UniQLogo';
+import { MessSelector } from '@/components/ui/MessSelector';
 
 const navLinks = [
   { href: '/student', label: 'Student' },
@@ -17,8 +20,6 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isDark, setIsDark] = useState(false);
   const [simRunning, setSimRunning] = useState(false);
-  const [selectedMess, setSelectedMess] = useState('North Hostel Mess');
-  const [messDropdownOpen, setMessDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -82,12 +83,13 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 h-[72px] border-b-2 border-ink bg-bg/95 backdrop-blur-md transition-colors relative">
       <div className="max-w-[1280px] mx-auto px-3 sm:px-6 h-full flex items-center justify-between gap-2 sm:gap-4">
-        {/* Left: Wordmark (Bebas Neue at 32px, one line, white-space: nowrap, no bigger) */}
+        {/* Left: Wordmark (UniQ in Bebas Neue at 32px, one line, nowrap) */}
         <Link
           href="/"
-          className="font-condensed text-[26px] sm:text-[32px] tracking-wide text-ink hover:text-saffron transition-colors uppercase whitespace-nowrap flex-shrink-0 leading-none"
+          className="hover:opacity-90 transition-opacity whitespace-nowrap flex-shrink-0 flex items-center"
+          aria-label="UniQ Home"
         >
-          BEAT THE MESS RUSH
+          <UniQLogo size={32} />
         </Link>
 
         {/* Center: Nav links (Centered, IBM Plex Mono 13px, uppercase, 0.06em, 24px gap, saffron underline, hidden below 1100px) */}
@@ -121,34 +123,8 @@ export default function Navbar() {
             {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
 
-          {/* Compact Mess Selector ("North Hostel Mess", nowrap, 2px ink border, 40px height) */}
-          <div className="relative hidden md:block">
-            <button
-              onClick={() => setMessDropdownOpen(!messDropdownOpen)}
-              className="h-10 px-3 flex items-center gap-1.5 text-xs font-mono font-bold bg-bg-raised border-2 border-ink shadow-offset-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none whitespace-nowrap transition-all"
-            >
-              <span className="w-2 h-2 rounded-full bg-curry-leaf flex-shrink-0" />
-              <span className="whitespace-nowrap">{selectedMess}</span>
-              <ChevronDown size={14} className="flex-shrink-0" />
-            </button>
-            {messDropdownOpen && (
-              <div className="absolute right-0 mt-1 w-48 bg-bg-raised border-2 border-ink shadow-offset-md py-1 z-50 text-xs font-mono">
-                {['North Hostel Mess', 'Satellite Mess B'].map((mess) => (
-                  <button
-                    key={mess}
-                    onClick={() => {
-                      setSelectedMess(mess);
-                      setMessDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-saffron hover:text-white flex items-center justify-between"
-                  >
-                    <span>{mess}</span>
-                    {selectedMess === mess && <Check size={12} />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Searchable, Grouped Mess Selector (19 Messes, nowrap, 40px height, bottom sheet on mobile) */}
+          <MessSelector />
 
           {/* Rush Sim Button (red #D7312B, hard shadow, 40px height, single-line) */}
           <button
@@ -207,8 +183,11 @@ export default function Navbar() {
               );
             })}
             <div className="pt-2 border-t border-ink/20 flex items-center justify-between md:hidden text-xs font-mono">
-              <span className="font-bold text-ink">{selectedMess}</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-curry-leaf" />
+              <span className="text-ink-muted font-bold">LPU TENANT</span>
+              <span className="font-bold text-ink flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-curry-leaf" />
+                19 Messes Active
+              </span>
             </div>
           </nav>
         </div>

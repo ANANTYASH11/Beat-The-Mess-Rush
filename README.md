@@ -1,43 +1,37 @@
-# Beat the Mess Rush 🍛⚡
-> **Next.js 14+ App Router • Prisma ORM • Framer Motion • Tailwind CSS • TypeScript**
-> **"Midnight Canteen" Premium UI/UX & Motion Overhaul**
+# UniQ: Mess ki line ab online! 🍛⚡
+> **Next.js 14+ App Router • Prisma ORM • Three.js 3D Thali • Framer Motion • Tailwind CSS • TypeScript**
+> **Signature Neo-Brutalist Dhaba Theme — Cream #F4ECD8, Ink #14110F & Saffron #F28C1B**
 
-Built specifically for college hostel dining halls (~600 students, 1 main mess to start, multi-mess ready). Engineered around real-world campus constraints (patchy Wi-Fi/4G, busy non-tech-savvy mess staff, walk-in students, and zero special hardware), now styled as a food-tech product.
+Built specifically for collegiate dining halls (configured for Lovely Professional University, Phagwara • 19 Messes multi-mess architecture). Engineered around real-world campus constraints (patchy Wi-Fi/4G, busy non-tech-savvy mess staff, walk-in students, and zero special hardware).
 
 ---
 
-## 🎨 "Midnight Canteen" Design System & Motion System
+## 🏷️ Why UniQ?
+- **University + Queue = UniQ**: A direct, memorable identity connecting higher education campus life with the daily reality of hostel dining lines.
+- **The "Q" Thali Mark**: The custom wordmark features a matte black thali plate circle with a refined thin brass rim, a central saffron dot, and a short brass queue "tail" resting seamlessly on the Bebas Neue baseline.
 
-### 1. Palette & Atmosphere
-- **Midnight Canvas**: Deep navy & ink background (`#070A12` / `#0B0F19`) with ambient gradient mesh backdrop (`radial-gradient` highlights).
-- **Food-Tech Accents**:
-  - **Saffron Orange** (`#FF8A3D`): Primary brand highlight, glowing accents, and active buttons.
-  - **Fresh Green** (`#22C55E`): Low crowd (Quiet), service active indicators, and savings highlights.
-  - **Aqua Cyan** (`#22D3EE`): Service rate line throughput, staff terminal actions, and timeline connectors.
-  - **Chilli Red** (`#FF4D4D`): High crowd (Busy), alert thresholds, and feedback loop reductions.
-- **Glassmorphism**: Backdrop blur (`backdrop-blur-xl`), 1px translucent borders (`border-white/10`), inner light gradients, and rounded-2xl/3xl corners.
-- **Typography**: Next.js Google Fonts with **Outfit** for headings, **Inter** for body text, and **JetBrains Mono** for live metrics and counters.
+```mermaid
+graph TD
+    A[Student Phone / Browser] -->|15-Min Arrival Booking| B[UniQ Dispatch Engine]
+    B -->|Live Split-Flap Telemetry| C[Staff Control Terminal]
+    B -->|Batch Demand Forecasting| D[Kitchen Chalkboard Console]
+    C -->|Check-in Verification| E[Prisma Local SQLite / Postgres]
+    D -->|Portion Right-Sizing| F[Campus Food Waste Reduction]
+```
 
-### 2. Motion System (`lib/motion.ts` & Framer Motion)
-- **Spring Physics Transitions**: Natural spring stiffness and damping instead of mechanical linear easing.
-- **Animated Number Counters (`StatCounter`)**: Count-up numbers for queue length, wait range, line rates, kg waste, and rupee savings.
-- **Looping Illustrations**:
-  - Animated "Mess Line": Live student dots moving along a curved track toward the serving counter with steam rising from food bowls (`components/home/MessLineHero.tsx`). Dot density reflects the live queue length.
-  - Animated Flow Strip: Student Demand ➔ Queue Regulation ➔ Kitchen Optimization with traveling glowing particles.
-- **Micro-Interactions**:
-  - Button lift on hover, scale 0.97 tap compression, and ripple pulses on primary CTAs (`AnimatedButton.tsx`).
-  - Animated heat strip slot pills with load fill bars and shimmering "Best time" badges (`SlotPill.tsx`).
-  - 3D perforated ticket card with confetti burst on confirmation (`canvas-confetti`).
-  - Visual student queue row in the staff terminal with student dots entering/leaving dynamically.
-  - Sliding action toasts with 1-tap **Undo** (`Toast.tsx`).
-- **Mobile First**: Fixed bottom navigation tab bar on phones (`sm:hidden`) with an animated active indicator pill.
+---
+
+## 🎨 Design System & Visual Identity
+- **Cream Paper & Ink**: `--color-bg: #F4ECD8`, `--color-ink: #14110F` with night mess warm charcoal `#1A1613` toggle.
+- **Bebas Neue Display Typography**: Condensed brutalist headlines paired with Fraunces italic editorial accents and IBM Plex Mono live telemetry.
+- **Interactive 3D Thali**: Procedural Three.js matte black dish with brushed brass accents, 6 authentic katoris, basmati rice, rotis, and interactive hover tooltips.
 
 ---
 
 ## 🏗️ Architecture & Component Hierarchy
 
 ```
-c:/Mess Rush App/
+c:/UniQ App/
 ├── app/
 │   ├── layout.tsx             # Fonts (Outfit, Inter, JetBrains Mono), Mesh BG, PWA
 │   ├── globals.css            # Midnight Canteen theme variables, glass utilities
@@ -130,3 +124,15 @@ Open **`http://localhost:3000`** in your browser.
    - Follow the **4-Week Collegiate Pilot Plan** roadmap.
 7. **Mobile Responsiveness (375px - 414px)**:
    - On mobile screens, observe the sticky **glass bottom tab bar** with 1-tap thumb navigation and active animated indicator.
+
+---
+
+## 🔮 Future Scope
+- **A La Carte Ordering**: Selective extra ordering (e.g. specialized canteen snacks, live egg station, or fresh fruit shakes) will be added to the student app in a future release. For now, dining is managed through fixed institutional meal plans (Standard 4-meal vs Basic 3-meal) to stabilize baseline kitchen prep.
+- **Physical Sensor Integration**: ESP32 ultrasonic overhead line sensors and smart load-cell return scales for automated drift alignment.
+- **Biometric Integration Testing**: Optional NFC student identity cards for automated turnstile check-in without manual PIN entry.
+
+---
+
+## ⚖️ Campus Integrity & Disclaimer
+> **Notice**: Built as a student project for Lovely Professional University (LPU). Not an official LPU service. UniQ makes no claim of official adoption or partnership with Lovely Professional University. All capacities, queue parameters, and plate counts are explicitly marked **SIMULATED** until empirical verification with the LPU mess office.

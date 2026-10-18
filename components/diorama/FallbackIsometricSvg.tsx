@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { university } from '@/config/university';
 
 interface FallbackProps {
   queueCount: number;
@@ -19,7 +20,7 @@ export function FallbackIsometricSvg({
   return (
     <div
       className="relative w-full h-full min-h-[380px] flex items-center justify-center bg-[#ECE6DA] dark:bg-[#1C1A17] rounded-panel overflow-hidden border border-warm-grey-200"
-      aria-label={`2D representation of North Hostel Mess with ${queueCount} people in queue, estimated wait ${waitTime}`}
+      aria-label={`2D representation of ${university.messes[0].name} with ${queueCount} people in queue, estimated wait ${waitTime}`}
     >
       <svg
         viewBox="0 0 600 400"
@@ -152,7 +153,7 @@ export function FallbackIsometricSvg({
           className="w-2 h-2 rounded-full"
           style={{ backgroundColor: lampColor }}
         />
-        <span className="font-medium">North Hostel Mess</span>
+        <span className="font-medium">{university.messes[0].name}</span>
         <span className="text-warm-grey-300">·</span>
         <span className="font-mono text-ink-muted">{queueCount} in line</span>
       </div>

@@ -14,27 +14,58 @@ model Student {
   hostel      String
   dietPref    String        @default("Veg") // Veg, Non-Veg, Jain
   streak      Int           @default(0) // consecutive off-peak streak
+  mealPlanId  String?
+  mealPlan    MealPlan?     @relation(fields: [mealPlanId], references: [id])
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   bookings    SlotBooking[]
 }
 
+model MealPlan {
+  id             String    @id @default(cuid())
+  universitySlug String    @default("lpu")
+  name           String    // "Standard", "Basic / Custom"
+  meals          String    // JSON array: e.g. '["Breakfast","Lunch","Snacks","Dinner"]'
+  description    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  students       Student[]
+}
+
 model Mess {
-  id              String        @id @default(cuid())
-  code            String        @unique // e.g. "mess-1", "mess-2"
-  name            String
-  capacity        Int           @default(200)
-  servingLines    Int           @default(1)
-  queueLowThresh  Int           @default(15)
-  queueHighThresh Int           @default(35)
-  active          Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  bookings        SlotBooking[]
-  queueEvents     QueueEvent[]
-  wasteLogs       WasteLog[]
-  forecasts       Forecast[]
-  eventFlags      EventFlag[]
+  id                     String        @id @default(cuid())
+  code                   String        @unique // e.g. "central-north", "boys-hostel-1"
+  name                   String
+  category               String        @default("BOYS_HOSTEL") // CENTRAL, BOYS_HOSTEL, BOYS_STUDIO, GIRLS_HOSTEL, GIRLS_STUDIO
+  gender                 String        @default("BOYS") // BOYS, GIRLS, ALL
+  zone                   String?       // NORTH, SOUTH, or null
+  dietType               String        @default("veg") // veg, mixed
+  dietFlag               String?       // "confirm"
+  seats                  Int?          // Nullable! "Not set yet"
+  studentsAssigned       Int?          // Nullable!
+  counters               Int?          // Nullable!
+  serviceRatePerCounter  Float?        // Nullable!
+  dataSource             String        @default("unverified") // "unverified" | "verified"
+  notes                  String?
+  staffPinHash           String?
+  kitchenPinHash         String?
+  universitySlug         String        @default("lpu")
+  mealTimingsOverride    String?       // JSON string
+  weekendTimingsOverride String?       // JSON string
+
+  // Legacy/operational fallback fields:
+  capacity               Int           @default(200)
+  servingLines           Int           @default(1)
+  queueLowThresh         Int           @default(15)
+  queueHighThresh        Int           @default(35)
+  active                 Boolean       @default(true)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  bookings               SlotBooking[]
+  queueEvents            QueueEvent[]
+  wasteLogs              WasteLog[]
+  forecasts              Forecast[]
+  eventFlags             EventFlag[]
 }
 
 model MenuItem {
@@ -141,4 +172,40 @@ model Setting {
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model ModelRun {
+  id             String   @id @default(cuid())
+  universityId   String   @default("lpu") // universityId per prompt specification
+  modelName      String   // e.g. "attendance_forecast", "queue_wait_time", "dish_waste"
+  version        Int      @default(1)
+  trainedAt      DateTime @default(now())
+  rows           Int      @default(0)
+  metrics        String   // JSON string with MAE, MAPE, intervalCoverage80, baselineMAE, baselineMAPE, etc.
+  dataMode       String   @default("SIMULATED") // SIMULATED | REAL | MIXED
+  active         Boolean  @default(true)
+  artefactPath   String?
+  features       String?  // JSON list of features
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([universityId, modelName, active])
+}
+
+model SuggestionFeedback {
+  id             String   @id @default(cuid())
+  universityId   String   @default("lpu")
+  target         String   // "KITCHEN" | "STAFF" | "ADMIN" | "STUDENT"
+  messCode       String?
+  suggestionKey  String
+  recommendation String
+  evidence       String?
+  impactExpected String?
+  confidence     String?  // "High" | "Medium" | "Low"
+  action         String   // "ACCEPTED" | "DISMISSED" | "SNOOZED"
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  @@index([universityId, target, action])
 }

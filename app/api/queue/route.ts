@@ -4,9 +4,11 @@ import { getLiveQueueStatus } from '@/lib/queue';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 
+import { university } from '@/config/university';
+
 const queueActionSchema = z.object({
   action: z.enum(['CHECKIN', 'WALKIN', 'SERVED', 'DRIFT_ADJUST']),
-  messCode: z.string().default('mess-1'),
+  messCode: z.string().default(university.messes[0]?.id || 'central-mess-north'),
   codeOrRoll: z.string().optional(),
   delta: z.number().optional(),
 });
@@ -18,7 +20,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const messCode = searchParams.get('messCode') || 'mess-1';
+  const messCode = searchParams.get('messCode') || university.messes[0]?.id || 'central-mess-north';
 
   try {
     const status = await getLiveQueueStatus(messCode);

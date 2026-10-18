@@ -1,5 +1,5 @@
 """
-FastAPI Microservice for Mess Rush Meal Demand Forecasting.
+FastAPI Microservice for UniQ Meal Demand Forecasting.
 Called by Next.js route handler /app/api/forecast/route.ts.
 Falls back automatically to /lib/forecast.ts if microservice is offline.
 """
@@ -10,7 +10,7 @@ import math
 from typing import Optional
 
 app = FastAPI(
-    title="Beat the Mess Rush - Forecasting Service",
+    title="UniQ - Forecasting Service",
     description="Microservice providing blended Bayesian-style meal demand prediction.",
     version="1.0.0"
 )

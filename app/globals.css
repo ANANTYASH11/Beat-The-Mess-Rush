@@ -5,16 +5,18 @@
 @tailwind utilities;
 
 /* ── Explicit Font Guarantees ── */
+.font-display,
 .font-condensed {
-  font-family: var(--font-condensed), 'Bebas Neue', Anton, sans-serif !important;
+  font-family: 'Bebas Neue', var(--font-condensed), Anton, sans-serif !important;
 }
 
-.font-accent {
-  font-family: var(--font-accent), 'Fraunces', Georgia, serif !important;
+.font-accent,
+.font-serif {
+  font-family: 'Fraunces', var(--font-accent), Georgia, serif !important;
 }
 
 .font-mono {
-  font-family: var(--font-mono), 'IBM Plex Mono', 'Courier New', monospace !important;
+  font-family: 'IBM Plex Mono', var(--font-mono), 'Courier New', monospace !important;
 }
 
 .font-handwriting {

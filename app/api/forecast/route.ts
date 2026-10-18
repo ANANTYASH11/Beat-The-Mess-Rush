@@ -4,10 +4,12 @@ import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 
+import { university } from '@/config/university';
+
 const updateForecastSchema = z.object({
-  messCode: z.string().default('mess-1'),
+  messCode: z.string().default(university.messes[0]?.id || 'central-mess-north'),
   date: z.string(),
-  mealType: z.enum(['Lunch', 'Dinner']),
+  mealType: z.enum(['Breakfast', 'Lunch', 'Snacks', 'Dinner']),
   eventTitle: z.string().nullable().optional(),
   eventAdjustmentPct: z.number().default(0),
   safetyBufferPct: z.number().default(8.0),
@@ -20,35 +22,13 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const messCode = searchParams.get('messCode') || 'mess-1';
+  const messCode = searchParams.get('messCode') || university.messes[0]?.id || 'central-mess-north';
   const dateStr = searchParams.get('date') || new Date().toISOString().split('T')[0];
   const mealType = searchParams.get('mealType') || 'Lunch';
 
   try {
-    // Attempt calling Python microservice if available
-    let pythonForecast = null;
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 600); // 600ms timeout
-      const pyRes = await fetch(
-        `http://127.0.0.1:8000/forecast?mess_code=${messCode}&date=${dateStr}&meal_type=${mealType}`,
-        { signal: controller.signal }
-      );
-      clearTimeout(timeoutId);
-      if (pyRes.ok) {
-        pythonForecast = await pyRes.json();
-      }
-    } catch {
-      // Python microservice not running, fall back gracefully
-    }
-
-    if (pythonForecast) {
-      return NextResponse.json({ ...pythonForecast, source: 'FASTAPI_MICROSERVICE' });
-    }
-
-    // Pure TypeScript Fallback
-    const tsForecast = await calculateForecast(messCode, dateStr, mealType);
-    return NextResponse.json({ ...tsForecast, source: 'TYPESCRIPT_FALLBACK' });
+    const forecast = await calculateForecast(messCode, dateStr, mealType);
+    return NextResponse.json(forecast);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Error calculating forecast';
     return NextResponse.json({ error: msg }, { status: 500 });

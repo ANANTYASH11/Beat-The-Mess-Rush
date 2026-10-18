@@ -4,6 +4,9 @@ export interface UserSession {
   role: 'student' | 'staff' | 'kitchen' | 'admin';
   rollNumber?: string;
   name: string;
+  messCode?: string;
+  messName?: string;
+  messId?: string;
 }
 
 const SESSION_COOKIE = 'mess_rush_session';

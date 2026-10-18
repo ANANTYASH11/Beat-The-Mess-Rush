@@ -86,7 +86,7 @@ export default function StyleguidePage() {
               DISPLAY: BEBAS NEUE (CONDENSED HEADLINES)
             </span>
             <div className="font-display text-5xl sm:text-6xl text-[#14110F] uppercase tracking-wide">
-              BEAT THE MESS RUSH • 15-MIN COACH ARRIVALS
+              UniQ • 15-MIN COACH ARRIVALS
             </div>
           </div>
 

@@ -32,8 +32,8 @@ export function HeroSection({
 
           {/* 
             2. Headline: clamp(88px, 9.5vw, 150px), Bebas Neue, line-height 0.9
-            Three lines: "BEAT THE" / "MESS" / "RUSH"
-            "RUSH" on saffron hand-cut block, ink text on saffron
+            Three lines: "MESS KI LINE" / "AB" / "ONLINE!"
+            "ONLINE!" on saffron hand-cut block, ink text on saffron
             On cream, the headline is ink #14110F; in dark mode, cream #F4ECD8
           */}
           <div className="select-none">
@@ -44,17 +44,17 @@ export function HeroSection({
                 lineHeight: 0.9,
               }}
             >
-              {/* Line 1: BEAT THE */}
+              {/* Line 1: MESS KI LINE */}
               <span className="block text-[#14110F] dark:text-[#F4ECD8]">
-                BEAT THE
+                MESS KI LINE
               </span>
 
-              {/* Line 2: MESS */}
+              {/* Line 2: AB */}
               <span className="block text-[#14110F] dark:text-[#F4ECD8]">
-                MESS
+                AB
               </span>
 
-              {/* Line 3: RUSH on saffron block */}
+              {/* Line 3: ONLINE! on saffron block */}
               <span className="block overflow-visible pt-1">
                 <span
                   className="hand-cut-block text-[#14110F] bg-[#F28C1B] inline-block px-3.5 py-0.5 border-2 border-[#14110F] shadow-[3px_3px_0px_#14110F] dark:shadow-[3px_3px_0px_#F4ECD8]"
@@ -62,7 +62,7 @@ export function HeroSection({
                     clipPath: 'polygon(1% 4%, 99% 1%, 98% 96%, 2% 99%)',
                   }}
                 >
-                  RUSH
+                  ONLINE!
                 </span>
               </span>
             </h1>
@@ -70,7 +70,7 @@ export function HeroSection({
 
           {/* 3. Fraunces italic subhead */}
           <p className="font-accent italic text-lg sm:text-xl text-[#5A534C] dark:text-[#B8B0A2] leading-snug">
-            Staggered arrival slots that eliminate lunchtime queues and cut mess waste.
+            Pick a time slot. Skip the queue. The kitchen cooks only what is needed.
           </p>
 
           {/* 4. Two Buttons */}

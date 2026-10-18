@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
+import { university } from '@/config/university';
 
 const logWasteSchema = z.object({
-  messCode: z.string().default('mess-1'),
+  messCode: z.string().default(university.messes[0]?.id || 'central-mess-north'),
   date: z.string(),
-  mealType: z.enum(['Lunch', 'Dinner']),
+  mealType: z.enum(['Breakfast', 'Lunch', 'Snacks', 'Dinner']),
   dishLeftovers: z.array(
     z.object({
       menuItemId: z.string(),
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
       update: {
         actualPlates: actualPlates || 495,
         surplusNgoNotified: surplusAvailable && Boolean(surplusNgoContact),
-        surplusNgoContact: surplusNgoContact || (surplusAvailable ? 'Robin Hood Army Campus Chapter (+91 98765 43210)' : null),
+        surplusNgoContact: surplusNgoContact || (surplusAvailable ? university.ngoContact : null),
       },
       create: {
         messId: mess.id,
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
         confidenceLevel: 'Moderate',
         confidenceNote: 'Logged post-meal',
         surplusNgoNotified: surplusAvailable && Boolean(surplusNgoContact),
-        surplusNgoContact: surplusNgoContact || (surplusAvailable ? 'Robin Hood Army Campus Chapter (+91 98765 43210)' : null),
+        surplusNgoContact: surplusNgoContact || (surplusAvailable ? university.ngoContact : null),
       },
     });
 
@@ -118,7 +119,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const messCode = searchParams.get('messCode') || 'mess-1';
+  const messCode = searchParams.get('messCode') || university.messes[0]?.id || 'central-mess-north';
 
   try {
     const mess = await prisma.mess.findFirst({
@@ -169,7 +170,7 @@ export async function GET(req: NextRequest) {
       const totalWaste = logs.reduce((acc, l) => acc + (l.leftoverCookedKg + l.plateWasteKg), 0);
       const wastePct = totalCooked > 0 ? parseFloat(((totalWaste / totalCooked) * 100).toFixed(1)) : 0;
       const avgLeftover = parseFloat((logs.reduce((acc, l) => acc + l.leftoverCookedKg, 0) / logs.length).toFixed(1));
-      const totalInrLost = Math.round(totalWaste * dish.unitCostInr);
+      const totalInrLost = Math.round(totalWaste * ((dish as any).unitCostInr || university.costPerKgFood));
 
       return {
         id: dish.id,

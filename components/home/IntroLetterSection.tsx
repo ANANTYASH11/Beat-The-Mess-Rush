@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
+import { university } from '@/config/university';
 
 interface IntroLetterSectionProps {
   queueCount: number;
@@ -65,7 +66,7 @@ export function IntroLetterSection({
           01 / Why this exists
         </div>
         <h2 className="font-condensed text-4xl sm:text-5xl lg:text-6xl text-ink uppercase tracking-tight leading-none">
-          THE ORIGIN OF BEAT THE RUSH
+          THE ORIGIN OF UniQ
         </h2>
       </div>
 
@@ -86,20 +87,29 @@ export function IntroLetterSection({
             />
 
             {/* EDIT ME: personal intro */}
-            <blockquote className="font-accent text-lg sm:text-xl text-ink leading-relaxed mb-8">
-              “I built this after standing in the 40-minute lunch queue at our hostel on a hot Tuesday
-              during mid-term exams. The kitchen staff weren’t slow — 280 students simply showed up
-              within the exact same 15 minutes. By giving every wing a staggered 15-minute window and
-              reporting plate tallies to the cook early, both the queue and the leftover waste vanished.”
+            <blockquote className="font-accent text-lg sm:text-xl text-ink leading-relaxed mb-6">
+              “I built UniQ as a student project for {university.name} after watching
+              hundreds of us rush {university.messes[0].name} at {university.peakWindows.lunch} right after lecture hours.
+              The kitchen team works tirelessly, but when {Math.round((university.messes[0].seats || 350) * 0.75)} students show up
+              at the exact same minute, lines backup out the doorway. By offering voluntary, staggered 15-minute
+              arrival windows and early batch visibility to the cooks, we can flatten the bottleneck without biometric hardware or turnstiles.”
             </blockquote>
+
+            <p className="font-mono text-xs text-saffron font-bold mb-3">
+              Project name: UniQ = University + Queue
+            </p>
+
+            <p className="font-mono text-[11px] text-ink-muted italic mb-6">
+              * Note: Built as a student project for {university.name}. Not an official administration system.
+            </p>
 
             {/* Handwritten Signature in Caveat */}
             <div className="flex flex-col items-end pt-4 border-t border-ink/20">
               <span className="font-handwriting text-3xl sm:text-4xl text-saffron font-bold tracking-wide">
-                — Aditya K.
+                — {university.yourName}
               </span>
               <span className="font-mono text-xs uppercase tracking-wider text-ink-muted mt-1">
-                Hostel 4 Resident · Senior (22CS014)
+                {university.messes[0].hostel} Resident · {university.yourCourse}
               </span>
             </div>
           </div>

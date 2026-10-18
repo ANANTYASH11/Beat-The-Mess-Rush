@@ -1,0 +1,108 @@
+day,meal,dish,category,avgGramsPerPlate
+Monday,Breakfast,Indori Poha & Sev,Main,180
+Monday,Breakfast,Boiled Eggs / Sprouts,Side,90
+Monday,Breakfast,Toasted Bread & Butter,Bread,80
+Monday,Breakfast,Masala Chai / Milk,Side,150
+Monday,Lunch,Punjabi Rajma Masala,Curry,130
+Monday,Lunch,Steamed Jeera Rice,Main,160
+Monday,Lunch,Fresh Tawa Roti,Bread,80
+Monday,Lunch,Aloo Gobi Adraki,Curry,110
+Monday,Lunch,Boondi Raita & Salad,Side,90
+Monday,Snacks,Samosa with Mint Chutney,Snack,120
+Monday,Snacks,Adrak Wali Chai,Side,150
+Monday,Dinner,Dal Tadka Dhaba Style,Curry,120
+Monday,Dinner,Paneer Butter Masala,Curry,140
+Monday,Dinner,Steamed Basmati Rice,Main,150
+Monday,Dinner,Hot Tandoori Roti,Bread,80
+Monday,Dinner,Warm Gulab Jamun,Sweet,70
+Tuesday,Breakfast,Masala Idli & Sambhar,Main,190
+Tuesday,Breakfast,Coconut Chutney,Side,50
+Tuesday,Breakfast,Fresh Banana,Side,100
+Tuesday,Breakfast,Filter Coffee / Milk,Side,150
+Tuesday,Lunch,Kadhi Pakora,Curry,140
+Tuesday,Lunch,Steamed White Rice,Main,160
+Tuesday,Lunch,Bhindi Do Pyaza,Curry,100
+Tuesday,Lunch,Fresh Phulka Roti,Bread,80
+Tuesday,Lunch,Green Salad & Papad,Side,60
+Tuesday,Snacks,Veg Cutlet & Sauce,Snack,110
+Tuesday,Snacks,Hot Tea,Side,150
+Tuesday,Dinner,Dal Makhani,Curry,130
+Tuesday,Dinner,Mix Veg Handi,Curry,110
+Tuesday,Dinner,Jeera Pulao,Main,150
+Tuesday,Dinner,Butter Naan / Roti,Bread,85
+Tuesday,Dinner,Moong Dal Halwa,Sweet,75
+Wednesday,Breakfast,Aloo Paratha & Curd,Main,200
+Wednesday,Breakfast,Mint Pickle & Butter,Side,30
+Wednesday,Breakfast,Tea / Bournvita Milk,Side,150
+Wednesday,Lunch,Chole Bhature / Kulche,Curry,160
+Wednesday,Lunch,Jeera Rice,Main,150
+Wednesday,Lunch,Tawa Roti,Bread,80
+Wednesday,Lunch,Lauki Chana Dal,Curry,100
+Wednesday,Lunch,Cucumber Onion Salad,Side,70
+Wednesday,Snacks,Bread Pakora,Snack,120
+Wednesday,Snacks,Cardamom Tea,Side,150
+Wednesday,Dinner,Homestyle Chicken Curry / Shahi Paneer,Curry,150
+Wednesday,Dinner,Yellow Dal Fry,Curry,110
+Wednesday,Dinner,Steamed Rice,Main,150
+Wednesday,Dinner,Fresh Chapati,Bread,80
+Wednesday,Dinner,Kheer,Sweet,80
+Thursday,Breakfast,Crispy Medu Vada & Sambhar,Main,180
+Thursday,Breakfast,Tomato & Coconut Chutney,Side,60
+Thursday,Breakfast,Tea / Coffee,Side,150
+Thursday,Lunch,Moong Dal Tadka,Curry,120
+Thursday,Lunch,Matar Paneer,Curry,130
+Thursday,Lunch,Steamed Rice,Main,160
+Thursday,Lunch,Phulka Roti,Bread,80
+Thursday,Lunch,Curd & Fryums,Side,80
+Thursday,Snacks,Pani Puri / Bhel Puri,Snack,130
+Thursday,Snacks,Cutting Chai,Side,150
+Thursday,Dinner,Kashmiri Dum Aloo,Curry,120
+Thursday,Dinner,Panchmel Dal,Curry,110
+Thursday,Dinner,Peas Pulao,Main,150
+Thursday,Dinner,Tawa Paratha,Bread,85
+Thursday,Dinner,Rasgulla,Sweet,70
+Friday,Breakfast,Pav Bhaji / Upma,Main,190
+Friday,Breakfast,Sprouts Chaat,Side,70
+Friday,Breakfast,Tea / Milk,Side,150
+Friday,Lunch,Rajma Masala,Curry,130
+Friday,Lunch,Steamed Jeera Rice,Main,160
+Friday,Lunch,Aloo Baingan Masala,Curry,100
+Friday,Lunch,Fresh Roti,Bread,80
+Friday,Lunch,Mix Pickle & Papad,Side,40
+Friday,Snacks,Veg Puff / Patties,Snack,110
+Friday,Snacks,Hot Coffee,Side,150
+Friday,Dinner,Hyderabadi Veg Biryani / Egg Biryani,Main,220
+Friday,Dinner,Mirchi Ka Salan,Curry,90
+Friday,Dinner,Cucumber Raita,Side,90
+Friday,Dinner,Rumali Roti,Bread,70
+Friday,Dinner,Ice Cream Scoop,Sweet,65
+Saturday,Breakfast,Puri Bhaji (Halwai Style),Main,210
+Saturday,Breakfast,Suji Halwa,Sweet,70
+Saturday,Breakfast,Tea / Milk,Side,150
+Saturday,Lunch,Sambhar & Lemon Rice,Main,170
+Saturday,Lunch,Paneer Bhurji / Aloo Shimla,Curry,120
+Saturday,Lunch,Tawa Roti,Bread,80
+Saturday,Lunch,Chana Dal Fry,Curry,110
+Saturday,Lunch,Curd,Side,80
+Saturday,Snacks,Maggi / Masala Pasta,Snack,140
+Saturday,Snacks,Masala Chai,Side,150
+Saturday,Dinner,Dal Palak,Curry,120
+Saturday,Dinner,Kadhai Paneer / Butter Chicken,Curry,140
+Saturday,Dinner,Steamed Rice,Main,150
+Saturday,Dinner,Garlic Butter Naan,Bread,85
+Saturday,Dinner,Shahi Tukda,Sweet,75
+Sunday,Breakfast,Masala Dosa with Chutneys & Sambhar,Main,220
+Sunday,Breakfast,Boiled Eggs / Fruit Bowl,Side,100
+Sunday,Breakfast,Filter Coffee,Side,150
+Sunday,Lunch,Special Festive Thali: Dal Makhani,Curry,130
+Sunday,Lunch,Paneer Tikka Masala,Curry,140
+Sunday,Lunch,Jeera Pulao,Main,160
+Sunday,Lunch,Missi Roti & Naan,Bread,90
+Sunday,Lunch,Angoori Jamun,Sweet,70
+Sunday,Snacks,Chai & Biscuits / Banana,Snack,80
+Sunday,Snacks,Cold Coffee,Side,180
+Sunday,Dinner,Light Khichdi / Dal Fry,Main,180
+Sunday,Dinner,Aloo Jeera,Curry,100
+Sunday,Dinner,Tawa Phulka,Bread,80
+Sunday,Dinner,Tomato Soup & Croutons,Side,120
+Sunday,Dinner,Vanilla Custard with Fruits,Sweet,85
